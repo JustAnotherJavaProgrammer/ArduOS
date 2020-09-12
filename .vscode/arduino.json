@@ -1,0 +1,7 @@
+{
+    "sketch": "ArduOS.ino",
+    "board": "arduino:megaavr:nona4809",
+    "configuration": "mode=off",
+    "output": "build",
+    "port": "COM3"
+}
