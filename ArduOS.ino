@@ -1,4 +1,8 @@
+#include <SPI.h>
 #include <SD.h>
+// SdFat is actually a newer version of the same library.
+// #include <SdFat.h>
+// SdFat SD;
 #include <Adafruit_GFX.h>
 #include <TouchScreen.h>
 // LCD setup
@@ -33,8 +37,16 @@ MCUFRIEND_kbv tft;
 #define STATUS_Y 65
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
+// Image loading from SD setup
+// #include <Adafruit_ImageReader.h>
+// Adafruit_ImageReader reader(SD);
+#define SUCCESS 0
+#define FILE_NOT_FOUND 1
+#define BAD_FORMAT 2
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
   tft.reset();
   tft.begin(tft.readID());
   tft.setRotation(1);
@@ -68,6 +80,23 @@ void setup() {
     tft.setTextColor(BLACK);
     tft.setCursor(23, 142);
     tft.println(F("Loading, please wait..."));
+  }
+  byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
+  if(drawResult != SUCCESS) {
+    tft.fillRect(21,140,276,20,WHITE);
+    tft.setTextColor(RED);
+    tft.setCursor(23, 142);
+    tft.setTextSize(2);
+    tft.setTextWrap(true);
+    switch(drawResult) {
+      case FILE_NOT_FOUND:
+      tft.println(F("ERROR: System file \"ARDUOS.BMP\" not found"));
+      break;
+      case BAD_FORMAT:
+      tft.println(F("ERROR: System file \"ARDUOS.BMP\" has an incorrect format or is corrupted"));
+      break;
+    }
+    while(true) {}
   }
 }
 
