@@ -44,6 +44,8 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define FILE_NOT_FOUND 1
 #define BAD_FORMAT 2
 
+double d = 32.4e-3;
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
@@ -63,6 +65,8 @@ void setup() {
   tft.setCursor(290 ,232);
   tft.println(F("v0.01"));
 
+  // Serial.println(d);
+  
   // For SD:
   pinMode(10, OUTPUT);
    
@@ -83,25 +87,31 @@ void setup() {
   }
   byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
   if(drawResult != SUCCESS) {
+    switch(drawResult) {
+      case FILE_NOT_FOUND:
+      drawFatalErrorMsg(F("ERROR: System file \"ARDUOS.BMP\" not found"));
+      case BAD_FORMAT:
+      drawFatalErrorMsg(F("ERROR: System file \"ARDUOS.BMP\" has an incorrect format or is corrupted"));
+    }
+  }
+  if(!openProgram("SYS/SYS.BAS")) {
+    drawFatalErrorMsg(F("FATAL ERRPR: System file \"SYS.BAS\" in directory \"/SYS\" not found!"));
+  }
+}
+
+void drawFatalErrorMsg(const __FlashStringHelper* text) {
     tft.fillRect(21,140,276,20,WHITE);
     tft.setTextColor(RED);
     tft.setCursor(23, 142);
     tft.setTextSize(2);
     tft.setTextWrap(true);
-    switch(drawResult) {
-      case FILE_NOT_FOUND:
-      tft.println(F("ERROR: System file \"ARDUOS.BMP\" not found"));
-      break;
-      case BAD_FORMAT:
-      tft.println(F("ERROR: System file \"ARDUOS.BMP\" has an incorrect format or is corrupted"));
-      break;
-    }
+    tft.println(text);
     while(true) {}
-  }
 }
 
 void loop() {
   // Program code
+  execCommand();
 }
 
 // unsigned int color(byte r, byte g, byte b) {
