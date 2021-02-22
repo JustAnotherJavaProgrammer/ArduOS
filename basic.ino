@@ -19,26 +19,36 @@ boolean execCommand() {
   if (sourceFile == NULL || !sourceFile || !sourceFile.available()) {
     return false;
   }
-  switch (sourceFile.read()) {
+  switch (charToUpperCase(sourceFile.read())) {
     case 'P':
-    case 'p':
-      switch (sourceFile.read()) {
+      switch (charToUpperCase(sourceFile.read())) {
         case 'R':
-        case 'r':
-          switch (sourceFile.read()) {
+          switch (charToUpperCase(sourceFile.read())) {
             case 'I':
-            case 'i':
-              switch (sourceFile.read()) {
+              switch (charToUpperCase(sourceFile.read())) {
                 case 'N':
-                case 'n':
-                  switch (sourceFile.read()) {
+                  switch (charToUpperCase(sourceFile.read())) {
                     case 'T':
-                    case 't':
                       if (isWhitespace(sourceFile.read()))
                         cmdPRINT();
                       break;
                   }
                   break;
+              }
+              break;
+          }
+          break;
+      }
+      break;
+    case 'R':
+      switch (charToUpperCase(sourceFile.read())) {
+        case 'E':
+          switch (charToUpperCase(sourceFile.read())) {
+            case 'M':
+              if (isWhitespace(sourceFile.read())) {
+                while(sourceFile.available() && !isControl(lookAhead())) {
+                  sourceFile.read();
+                }
               }
               break;
           }
@@ -80,7 +90,7 @@ void cmdPRINT() {
     // Must be an expression
     //    Serial.println(F("Expressions aren't implemented yet, sorry!"));
     double val = evaluateExpression();
-    if (val - ((long)val) == 0)
+    if (val - ((long)val) < 0.0000000001)
       Serial.print((long)val);
     else
       Serial.print(val);
@@ -114,12 +124,17 @@ double evaluateExpression() {
   // Thought about a conversion to Polish Notation before evaluation here, at first
   int expLength = 0;
   int startPos = sourceFile.position();
+  //  Serial.print(F("Expression found at "));
+  //  Serial.println(startPos);
   while (true) {
     int val = sourceFile.read();
-    if (val == ',' || val == '"' || val == -1 || isControl(val))
+    if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' ||
+        (charToUpperCase(lookAhead()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
       break;
+    //    Serial.println(sourceFile.position());
   }
-  expLength = sourceFile.position() - startPos - 1;
+  expLength = sourceFile.position() - startPos - (sourceFile.read() == -1 ? 0 : 1);
+  //  Serial.println(expLength);
   if (expLength == 0)
     return 0;
   double res = evaluateExpression(startPos, expLength);
@@ -147,13 +162,14 @@ double evaluateExpression(int startPos, int len) {
   sourceFile.seek(startPos);
   while (minOp > 1 && sourceFile.position() < targetPos) {
     int character = sourceFile.read();
+    //    Serial.println(sourceFile.position());
     if (layer == 0) {
       if (minOp > 1) {
         int lb = 2;
         while (sourceFile.position() - lb >= startPos && isWhitespace(lookBehind(lb))) {
           lb++;
         }
-        if ((character == '+' || character == '-') && !sourceFile.position() - 1 > startPos && lookBehind(lb) != '(' && lookBehind(lb) != ')') { // simple unary check
+        if ((character == '+' || character == '-') && sourceFile.position() - lb >= startPos && lookBehind(lb) != '(' && lookBehind(lb) != ')') { // simple unary check
           if (character == '+')
             minOp = 0;
           else if (character == '-')
@@ -196,10 +212,10 @@ double evaluateExpression(int startPos, int len) {
         opPos = sourceFile.position();
         continue;
       }
-      if (minOp > 10 && (isAlphaNumeric(character) || character == '.')) {
-        if (isAlpha(character))
+      if (minOp > 10 && (isAlphaNumeric(character) || character == '.' || character == '_')) {
+        if ((isAlpha(character) || character == '_') && !isAlpha(lookBehind()) && lookBehind() != '_')
           minOp = 10;
-        else
+        else if (!isAlpha(lookBehind()) && character != '_')
           minOp = 9;
         opPos = sourceFile.position();
       }
@@ -212,6 +228,20 @@ double evaluateExpression(int startPos, int len) {
   if (minOp == 255)
     return INFINITY;
   opPos--;
+
+  //  Serial.print(F("{ \""));
+  //  sourceFile.seek(startPos);
+  //  while (sourceFile.position() < targetPos) {
+  //    Serial.write(sourceFile.read());
+  //  }
+  //  Serial.print(F("\", "));
+  //  sourceFile.seek(opPos);
+  //  Serial.write(sourceFile.read());
+  //  Serial.print(F(" at "));
+  //  Serial.print(opPos);
+  //  Serial.print(F(", "));
+  //  Serial.print(minOp);
+  //  Serial.println(F(" }"));
 
   if (minOp < 5) {
     double left_side = evaluateExpression(startPos, opPos - startPos);
@@ -249,11 +279,16 @@ double evaluateExpression(int startPos, int len) {
 }
 
 int varIndexFromChar(int letter) {
-  if (isLowerCase(letter))
-    letter -= 0x20;
+  letter = charToUpperCase(letter);
   letter -= 0x41;
   letter %= 26;
   letter = abs(letter);
+  return letter;
+}
+
+int charToUpperCase(int letter) {
+  if (isLowerCase(letter))
+    return letter - 0x20;
   return letter;
 }
 
@@ -282,5 +317,12 @@ int lookBehind(int num) {
 int lookAhead() {
   int res = sourceFile.read();
   sourceFile.seek(sourceFile.position() - 1);
+  return res;
+}
+
+int lookAhead(int num) {
+  sourceFile.seek(sourceFile.position() + num - 1);
+  int res = sourceFile.read();
+  sourceFile.seek(sourceFile.position() - num);
   return res;
 }
