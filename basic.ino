@@ -1,13 +1,23 @@
 // Implementation of Tiny BASIC
 
+const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET "};
+const byte commandsCount PROGMEM = 5;
+
 double internal_vars[26];
+unsigned long internal_stack[50];
+byte stackPos = 0;
 
 File sourceFile;
+
+//int charToUpperCase(int letter);
+//void cmdPRINT();
+//void cmdLET();
 
 boolean openProgram(String fileName) {
   if (sourceFile != NULL) {
     sourceFile.close();
   }
+  stackPos = 0;
   sourceFile = SD.open(fileName);
   if (sourceFile) {
     return true;
@@ -19,41 +29,71 @@ boolean execCommand() {
   if (sourceFile == NULL || !sourceFile || !sourceFile.available()) {
     return false;
   }
-  switch (charToUpperCase(sourceFile.read())) {
-    case 'P':
-      switch (charToUpperCase(sourceFile.read())) {
-        case 'R':
-          switch (charToUpperCase(sourceFile.read())) {
-            case 'I':
-              switch (charToUpperCase(sourceFile.read())) {
-                case 'N':
-                  switch (charToUpperCase(sourceFile.read())) {
-                    case 'T':
-                      if (isWhitespace(sourceFile.read()))
-                        cmdPRINT();
-                      break;
-                  }
-                  break;
-              }
-              break;
-          }
-          break;
+  unsigned long startingPos = sourceFile.position();
+  byte cmd = -1;
+  {
+    byte currChar = 255;
+    for (byte i = 0; i < commandsCount;) {
+      sourceFile.seek(startingPos);
+      for (byte j = 0; j < 255; j++) {
+        currChar++;
+//        Serial.print(cmds(currChar));
+        int c = sourceFile.read();
+        switch (cmds(currChar)) {
+          case '*':
+            if (!isAlpha(c)) {
+              cmd = i;
+              goto command_found;
+            } else
+              goto not_this_command;
+          case ' ':
+            if (isWhitespace(c)) {
+              cmd = i;
+              goto command_found;
+            } else
+              goto not_this_command;
+          default:
+            if (cmds(currChar) == toUpperCase(c))
+              continue;
+            goto not_this_command;
+        }
+      }
+not_this_command:
+      while (cmds(currChar) != '*' && cmds(currChar) != ' ') {
+        currChar++;
+      }
+      currChar++;
+//      Serial.print(F("Not "));
+//      Serial.println(i);
+      i++;
+      continue;
+    }
+  }
+command_found:
+  switch (cmd) {
+    case 0: // PRINT
+      cmdPRINT();
+      break;
+    case 1: // REM
+      while (sourceFile.available() && !isControl(sourceFile.peek())) {
+        sourceFile.read();
       }
       break;
-    case 'R':
-      switch (charToUpperCase(sourceFile.read())) {
-        case 'E':
-          switch (charToUpperCase(sourceFile.read())) {
-            case 'M':
-              if (isWhitespace(sourceFile.read())) {
-                while(sourceFile.available() && !isControl(lookAhead())) {
-                  sourceFile.read();
-                }
-              }
-              break;
-          }
-          break;
+    case 2: // RETURN
+      if (stackPos > 0) {
+        stackPos--;
+        sourceFile.seek(internal_stack[stackPos]);
+        break;
       }
+    // else: END execution of current program
+    case 3: // END
+      sourceFile.close();
+      break;
+    case 4: // LET
+      cmdLET();
+      break;
+    default:
+      sourceFile.seek(startingPos + 1);
       break;
   }
   return true;
@@ -61,7 +101,7 @@ boolean execCommand() {
 
 void cmdPRINT() {
   while (true) {
-    int la = lookAhead();
+    int la = sourceFile.peek();
     if (isWhitespace(la) || la == ',') {
       //      Serial.println(F("Whitespace or comma"));
       sourceFile.read();
@@ -99,6 +139,10 @@ end_of_loop:
   Serial.println();
 }
 
+void cmdLET() {
+  // TODO: implement
+}
+
 int getNextCharInString() {
   int character = sourceFile.read();
   if (character == -1) {
@@ -106,7 +150,7 @@ int getNextCharInString() {
     return -2;
   }
   if (character == '\\') {
-    if (lookAhead() == '\\') {
+    if (sourceFile.peek() == '\\') {
       return character;
     }
     return 0;
@@ -122,14 +166,14 @@ int getNextCharInString() {
 
 double evaluateExpression() {
   // Thought about a conversion to Polish Notation before evaluation here, at first
-  int expLength = 0;
-  int startPos = sourceFile.position();
+  unsigned long expLength = 0;
+  unsigned long startPos = sourceFile.position();
   //  Serial.print(F("Expression found at "));
   //  Serial.println(startPos);
   while (true) {
     int val = sourceFile.read();
     if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' ||
-        (charToUpperCase(lookAhead()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
+        (charToUpperCase(sourceFile.peek()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
       break;
     //    Serial.println(sourceFile.position());
   }
@@ -142,7 +186,8 @@ double evaluateExpression() {
   return res;
 }
 
-double evaluateExpression(int startPos, int len) {
+// WARN: Might not work correctly for non-commutative operators with the same precedence
+double evaluateExpression(int startPos, unsigned long len) {
   // Memory check because of evil recursion
   if (freeMemory() < 100) {
     Serial.print(F("OOM: "));
@@ -156,16 +201,16 @@ double evaluateExpression(int startPos, int len) {
     }
   }
   int minOp = 255; // 255 == NOTHING, return INFINITY to indicate an error
-  int opPos = startPos;
+  unsigned long opPos = startPos;
   int layer = 0;
-  const int targetPos = startPos + len;
+  const unsigned long targetPos = startPos + len;
   sourceFile.seek(startPos);
   while (minOp > 1 && sourceFile.position() < targetPos) {
     int character = sourceFile.read();
     //    Serial.println(sourceFile.position());
     if (layer == 0) {
       if (minOp > 1) {
-        int lb = 2;
+        unsigned long lb = 2;
         while (sourceFile.position() - lb >= startPos && isWhitespace(lookBehind(lb))) {
           lb++;
         }
@@ -312,17 +357,15 @@ int lookBehind(int num) {
 }
 
 /**
-   Reads the next byte without changing the position in the file
+   Reads the byte num bytes ahead without changing the position in the file
 */
-int lookAhead() {
-  int res = sourceFile.read();
-  sourceFile.seek(sourceFile.position() - 1);
-  return res;
-}
-
 int lookAhead(int num) {
   sourceFile.seek(sourceFile.position() + num - 1);
   int res = sourceFile.read();
   sourceFile.seek(sourceFile.position() - num);
   return res;
+}
+
+int cmds(byte i) {
+  return pgm_read_byte_near(commands + i);
 }

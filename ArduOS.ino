@@ -45,7 +45,7 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define BAD_FORMAT 2
 
 double d = 32.4e-3;
-
+//byte drawBmp(char *filename, int x, int y);
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
@@ -62,51 +62,52 @@ void setup() {
   tft.setCursor(23, 142); // y: 78+64
   tft.println(F("Loading, please wait..."));
   tft.setTextSize(1);
-  tft.setCursor(290 ,232);
+  tft.setCursor(290 , 232);
   tft.println(F("v0.01"));
 
   // Serial.println(d);
-  
+
   // For SD:
   pinMode(10, OUTPUT);
-   
+
   while (!SD.begin(10)) {
     tft.setTextSize(2);
-    tft.fillRect(21,140,276,20,RED);
+    tft.fillRect(21, 140, 276, 20, RED);
     tft.setTextColor(WHITE);
     tft.setCursor(35, 142);
     tft.println(F("ERROR: Insert SD card"));
     tft.setTextColor(RED);
     tft.setCursor(44, 162);
     tft.println(F("Please tap to retry."));
-    while(!isPressed(readTFT())) {}
+    while (!isPressed(readTFT())) {}
     tft.fillRect(21, 140, 276, 38, WHITE);
     tft.setTextColor(BLACK);
     tft.setCursor(23, 142);
     tft.println(F("Loading, please wait..."));
   }
   byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
-  if(drawResult != SUCCESS) {
-    switch(drawResult) {
+  if (drawResult != SUCCESS) {
+    switch (drawResult) {
       case FILE_NOT_FOUND:
-      drawFatalErrorMsg(F("ERROR: System file \"ARDUOS.BMP\" not found"));
+        drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
       case BAD_FORMAT:
-      drawFatalErrorMsg(F("ERROR: System file \"ARDUOS.BMP\" has an incorrect format or is corrupted"));
+        drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
     }
   }
-  if(!openProgram("SYS/SYS.BAS")) {
-    drawFatalErrorMsg(F("FATAL ERRPR: System file \"SYS.BAS\" in directory \"/SYS\" not found!"));
+  if (!openProgram("SYS/SYS.BAS")) {
+    drawFatalErrorMsg(F("System file \"SYS.BAS\" not found"));
   }
 }
 
 void drawFatalErrorMsg(const __FlashStringHelper* text) {
-    tft.fillRect(21,140,276,20,WHITE);
-    tft.setTextColor(RED);
-    tft.setCursor(23, 142);
-    tft.setTextSize(2);
-    tft.setTextWrap(true);
-    tft.println(text);
-    while(true) {}
+  tft.fillRect(21, 140, 276, 20, WHITE);
+  tft.setTextColor(RED);
+  tft.setCursor(23, 142);
+  tft.setTextSize(2);
+  tft.setTextWrap(true);
+  tft.print(F("FATAL ERROR: "));
+  tft.println(text);
+  while (true) {}
 }
 
 void loop() {
@@ -127,9 +128,9 @@ TSPoint readTFT() {
   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
     // scale from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-    p.y = (tft.height()-map(p.y, TS_MINY, TS_MAXY, tft.height(), 0));
-   }
-   return p;
+    p.y = (tft.height() - map(p.y, TS_MINY, TS_MAXY, tft.height(), 0));
+  }
+  return p;
 }
 
 bool isPressed(TSPoint p) {
