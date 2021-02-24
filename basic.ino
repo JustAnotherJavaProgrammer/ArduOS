@@ -1,7 +1,7 @@
 // Implementation of Tiny BASIC
 
-const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET "};
-const byte commandsCount PROGMEM = 5;
+const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF "};
+const byte commandsCount PROGMEM = 6;
 
 double internal_vars[26];
 unsigned long internal_stack[50];
@@ -37,7 +37,7 @@ boolean execCommand() {
       sourceFile.seek(startingPos);
       for (byte j = 0; j < 255; j++) {
         currChar++;
-//        Serial.print(cmds(currChar));
+        //        Serial.print(cmds(currChar));
         int c = sourceFile.read();
         switch (cmds(currChar)) {
           case '*':
@@ -63,8 +63,8 @@ not_this_command:
         currChar++;
       }
       currChar++;
-//      Serial.print(F("Not "));
-//      Serial.println(i);
+      //      Serial.print(F("Not "));
+      //      Serial.println(i);
       i++;
       continue;
     }
@@ -75,9 +75,7 @@ command_found:
       cmdPRINT();
       break;
     case 1: // REM
-      while (sourceFile.available() && !isControl(sourceFile.peek())) {
-        sourceFile.read();
-      }
+      discardRestOfLine();
       break;
     case 2: // RETURN
       if (stackPos > 0) {
@@ -91,6 +89,10 @@ command_found:
       break;
     case 4: // LET
       cmdLET();
+      break;
+    case 5: // IF
+      if (evalCmp() < 0.0000000001)
+        discardRestOfLine();
       break;
     default:
       sourceFile.seek(startingPos + 1);
@@ -140,7 +142,60 @@ end_of_loop:
 }
 
 void cmdLET() {
-  // TODO: implement
+  while (!isAlpha(sourceFile.peek())) {
+    if (readAndDiscardWithEOLandEOFchecks()) {
+      return;
+    }
+  }
+  int index = varIndexFromChar(sourceFile.read());
+  while (sourceFile.peek() != '=') {
+    if (readAndDiscardWithEOLandEOFchecks()) {
+      return;
+    }
+  }
+  sourceFile.read();
+  //  Serial.println(sourceFile.position(), HEX);
+  internal_vars[index] = evaluateExpression();
+}
+
+double evalCmp() {
+  double left = evaluateExpression();
+  int c = sourceFile.peek();
+  if (!sourceFile.available())
+    return left;
+  byte comparator = 0;
+  switch (c) {
+    case '<':
+      comparator = 1;
+      break;
+    case '>':
+      comparator = 3;
+      break;
+    case '=':
+      comparator = 4;
+      break;
+    default:
+      return left;
+  }
+  sourceFile.read();
+  c = sourceFile.peek();
+  if (c == '=') {
+    comparator *= 2;
+    sourceFile.read();
+  }
+  double right = evaluateExpression();
+  double diff = left - right;
+  return (abs(diff) < 0.0000000001 && ((comparator < 3 && left < right) || (comparator % 3 == 0 && left > right) || comparator % 2 == 0)) ? 1.0 : 0.0;
+}
+
+void discardRestOfLine() {
+  while (!readAndDiscardWithEOLandEOFchecks()) {}
+}
+
+boolean readAndDiscardWithEOLandEOFchecks() {
+  //  Serial.print(sourceFile.peek(), HEX);
+  //  Serial.println(isControl(sourceFile.peek()));
+  return !sourceFile.available() || isControl(sourceFile.read());
 }
 
 int getNextCharInString() {
@@ -169,7 +224,7 @@ double evaluateExpression() {
   unsigned long expLength = 0;
   unsigned long startPos = sourceFile.position();
   //  Serial.print(F("Expression found at "));
-  //  Serial.println(startPos);
+  //  Serial.println(startPos, HEX);
   while (true) {
     int val = sourceFile.read();
     if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' ||
@@ -186,30 +241,30 @@ double evaluateExpression() {
   return res;
 }
 
-// WARN: Might not work correctly for non-commutative operators with the same precedence
 double evaluateExpression(int startPos, unsigned long len) {
   // Memory check because of evil recursion
   if (freeMemory() < 100) {
-    Serial.print(F("OOM: "));
-    Serial.println(freeMemory());
-    Serial.print(F("GC: "));
-    Serial.println(FreeRam());
-    if (freeMemory() < 100) {
-      Serial.print(F("OOM2: "));
-      Serial.println(freeMemory());
-      return INFINITY;
-    }
+    //    Serial.print(F("OOM: "));
+    //    Serial.println(freeMemory());
+    //    //    Serial.print(F("GC: "));
+    //    Serial.println(FreeRam());
+    //    if (freeMemory() < 100) {
+    ////      Serial.print(F("OOM2: "));
+    ////      Serial.println(freeMemory());
+    return INFINITY;
+    //    }
   }
   int minOp = 255; // 255 == NOTHING, return INFINITY to indicate an error
   unsigned long opPos = startPos;
   int layer = 0;
   const unsigned long targetPos = startPos + len;
   sourceFile.seek(startPos);
-  while (minOp > 1 && sourceFile.position() < targetPos) {
+  while (sourceFile.position() < targetPos) {
     int character = sourceFile.read();
     //    Serial.println(sourceFile.position());
     if (layer == 0) {
-      if (minOp > 1) {
+      //      if (minOp > 1)
+      {
         unsigned long lb = 2;
         while (sourceFile.position() - lb >= startPos && isWhitespace(lookBehind(lb))) {
           lb++;
@@ -223,7 +278,8 @@ double evaluateExpression(int startPos, unsigned long len) {
           continue;
         }
       }
-      if (minOp > 4 && (character == '*' || character == '/' || character == '%')) {
+      //      if (minOp > 4 && (character == '*' || character == '/' || character == '%')) {
+      if (minOp > 1 && (character == '*' || character == '/' || character == '%')) {
         switch (character) {
           case '*':
             minOp = 2;
@@ -241,7 +297,8 @@ double evaluateExpression(int startPos, unsigned long len) {
         opPos = sourceFile.position();
         continue;
       }
-      if (minOp > 6 && character == '(' || character == ')') {
+      //      if (minOp > 6 && character == '(' || character == ')') {
+      if (minOp > 4 && character == '(' || character == ')') {
         if (character == '(')
           minOp = 5;
         else
@@ -258,13 +315,24 @@ double evaluateExpression(int startPos, unsigned long len) {
         continue;
       }
       if (minOp > 10 && (isAlphaNumeric(character) || character == '.' || character == '_')) {
-        if ((isAlpha(character) || character == '_') && !isAlpha(lookBehind()) && lookBehind() != '_')
+        //        Serial.write(character);
+        //        Serial.println();
+        if ((isAlpha(character) || character == '_') && !isAlpha(lookBehind(2)) && lookBehind() != '_') {
           minOp = 10;
-        else if (!isAlpha(lookBehind()) && character != '_')
+          goto setPos;
+        }
+        else if (!isAlpha(lookBehind()) && character != '_') {
           minOp = 9;
-        opPos = sourceFile.position();
+          goto setPos;
+        }
+        if (false) {
+setPos:
+          opPos = sourceFile.position();
+          continue;
+        }
       }
     }
+layerCheck:
     if (character == '(')
       layer++;
     else if (character == ')')
@@ -274,19 +342,20 @@ double evaluateExpression(int startPos, unsigned long len) {
     return INFINITY;
   opPos--;
 
-  //  Serial.print(F("{ \""));
-  //  sourceFile.seek(startPos);
-  //  while (sourceFile.position() < targetPos) {
-  //    Serial.write(sourceFile.read());
-  //  }
-  //  Serial.print(F("\", "));
-  //  sourceFile.seek(opPos);
-  //  Serial.write(sourceFile.read());
-  //  Serial.print(F(" at "));
-  //  Serial.print(opPos);
-  //  Serial.print(F(", "));
-  //  Serial.print(minOp);
-  //  Serial.println(F(" }"));
+  //      Serial.print(F("{ \""));
+  //    sourceFile.seek(startPos);
+  //    while (sourceFile.position() < targetPos) {
+  //      Serial.write(sourceFile.read());
+  //    }
+  //    Serial.println();
+  //      Serial.print(F("\", "));
+  //      sourceFile.seek(opPos);
+  //      Serial.write(sourceFile.read());
+  //      Serial.print(F(" at "));
+  //      Serial.println(opPos, HEX);
+  //      Serial.print(F(", "));
+  //      Serial.print(minOp);
+  //      Serial.println(F(" }"));
 
   if (minOp < 5) {
     double left_side = evaluateExpression(startPos, opPos - startPos);
@@ -319,6 +388,7 @@ double evaluateExpression(int startPos, unsigned long len) {
       return (double) sourceFile.parseFloat();
     case 10:
       sourceFile.seek(opPos);
+      //      Serial.println(sourceFile.peek());
       return varFromIndex(varIndexFromChar(sourceFile.read()));
   }
 }
@@ -338,7 +408,7 @@ int charToUpperCase(int letter) {
 }
 
 double varFromIndex(int index) {
-  return internal_vars[index / 26];
+  return internal_vars[index % 26];
 }
 
 /**
