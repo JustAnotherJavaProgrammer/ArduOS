@@ -1,10 +1,11 @@
 // Implementation of Tiny BASIC
+#define internal_basic_stack_height 50
 
-const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF "};
-const byte commandsCount PROGMEM = 6;
+const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF GOTO GOSUB "};
+const byte commandsCount PROGMEM = 8;
 
 double internal_vars[26];
-unsigned long internal_stack[50];
+unsigned long internal_stack[internal_basic_stack_height];
 byte stackPos = 0;
 
 File sourceFile;
@@ -94,8 +95,28 @@ command_found:
       if (evalCmp() < 0.0000000001)
         discardRestOfLine();
       break;
+    case 6: // GOTO
+    case 7: // GOSUB
+      unsigned long jumpTarget = findGOTO();
+      //      Serial.print(F("JT: "));
+      //      Serial.println(jumpTarget, HEX);
+      if (jumpTarget == sourceFile.position()) {
+        discardRestOfLine();
+        break;
+      }
+      if (cmd == 7) {
+        discardRestOfLine();
+        if (stackPos >= internal_basic_stack_height)
+          return false;
+        internal_stack[stackPos] = sourceFile.position();
+        stackPos++;
+      }
+      sourceFile.seek(jumpTarget);
+      break;
     default:
-      sourceFile.seek(startingPos + 1);
+      while (!isWhitespaceOrControl(sourceFile.peek())) {
+        sourceFile.read();
+      }
       break;
   }
   return true;
@@ -132,13 +153,18 @@ void cmdPRINT() {
     // Must be an expression
     //    Serial.println(F("Expressions aren't implemented yet, sorry!"));
     double val = evaluateExpression();
-    if (val - ((long)val) < 0.0000000001)
+    if (shouldDiscardFloatingPoint(val))
       Serial.print((long)val);
     else
       Serial.print(val);
   }
 end_of_loop:
   Serial.println();
+}
+
+boolean shouldDiscardFloatingPoint(double val) {
+  val = abs(val);
+  return val - ((long)val) < 0.0000000001;
 }
 
 void cmdLET() {
@@ -188,8 +214,75 @@ double evalCmp() {
   return (abs(diff) < 0.0000000001 && ((comparator < 3 && left < right) || (comparator % 3 == 0 && left > right) || comparator % 2 == 0)) ? 1.0 : 0.0;
 }
 
+unsigned long findGOTO() {
+  while (isWhitespace(sourceFile.peek()))
+    sourceFile.read();
+  unsigned long startingPos = sourceFile.position();
+  unsigned long res = startingPos;
+  if (sourceFile.peek() == '(') { // goto also works with expressions in brackets as arguments
+    double trgt = evaluateExpression();
+    sourceFile.seek(0);
+    while (sourceFile.available()) {
+      //      Serial.println("---");
+      //      Serial.println(sourceFile.position(), HEX);
+      skipWhitespace();
+      //      Serial.println(sourceFile.position(), HEX);
+      int c = sourceFile.peek();
+      //      Serial.write(c);
+      unsigned long lineBeg = sourceFile.position();
+      if (((isDigit(c) || c == '-' || (c == '.' && !shouldDiscardFloatingPoint(trgt))) &&
+           ((shouldDiscardFloatingPoint(trgt) && sourceFile.parseInt() == (long) trgt) || sourceFile.parseFloat() == trgt)) ||
+          (c == '(' && (sourceFile.seek(lineBeg), trgt == evaluateExpression()))) { // It also evaluates expressions between brackets at the beginning of possible target lines!
+        res = lineBeg;
+        goto findGOTO_done;
+      }
+      //      if (c == '(')
+      //        Serial.println(sourceFile.seek(lineBeg), evaluateExpression());
+      //      Serial.println(sourceFile.position(), HEX);
+      sourceFile.seek(lineBeg);
+      discardRestOfLine();
+      //      Serial.println(sourceFile.position(), HEX);
+    }
+    goto findGOTO_done;
+  }
+
+  unsigned int wordLength = 0;
+  while (!isWhitespaceOrControl(sourceFile.read())) {
+    wordLength++;
+  }
+  sourceFile.seek(0);
+  while (sourceFile.available()) {
+    skipWhitespace();
+    unsigned long lineStart = sourceFile.position();
+    for (unsigned int i = 0; i < wordLength; i++) {
+      if ((sourceFile.seek(lineStart + i), sourceFile.read()) != (sourceFile.seek(startingPos + i), sourceFile.read())) {
+        sourceFile.seek(lineStart);
+        discardRestOfLine();
+        goto findGOTO_nextLine;
+      }
+    }
+    res = lineStart + wordLength;
+    break;
+findGOTO_nextLine:
+    continue;
+  }
+findGOTO_done:
+  sourceFile.seek(startingPos);
+  return res;
+}
+
+void skipWhitespace() {
+  while (isWhitespace(sourceFile.peek())) {
+    sourceFile.read();
+  }
+}
+
 void discardRestOfLine() {
   while (!readAndDiscardWithEOLandEOFchecks()) {}
+}
+
+boolean isWhitespaceOrControl(int c) {
+  return isWhitespace(c) || isControl(c);
 }
 
 boolean readAndDiscardWithEOLandEOFchecks() {
@@ -226,11 +319,11 @@ double evaluateExpression() {
   //  Serial.print(F("Expression found at "));
   //  Serial.println(startPos, HEX);
   while (true) {
+    //    Serial.println(sourceFile.position(), HEX);
     int val = sourceFile.read();
     if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' ||
         (charToUpperCase(sourceFile.peek()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
       break;
-    //    Serial.println(sourceFile.position());
   }
   expLength = sourceFile.position() - startPos - (sourceFile.read() == -1 ? 0 : 1);
   //  Serial.println(expLength);

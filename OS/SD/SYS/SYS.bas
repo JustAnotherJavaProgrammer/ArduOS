@@ -10,4 +10,11 @@ LET A = 40 + 2
 PRINT "A is now 40+2=A=", A
 IF A=42 THEN PRINT "A is 42"
 IF A=0 THEN PRINT "A is 0?!"
+GOSUB (A)
+PRINT "A is now ", A
+GOTO (A)
 END
+42 PRINT "GOSUB (A) was successfully evaluated!"
+(A) PRINT "Hit me Baby one more time!"
+LET A = A+1
+RETURN
