@@ -321,20 +321,26 @@ void cmdsDraw() {
   byte cmd = identifyCommand(drawCommands, drawCommandsCount);
   switch (cmd) {
     case 0:
-      unsigned long pos = sourceFile.position();
-      while (!isControl(sourceFile.peek()))
-        Serial.write(sourceFile.read());
-      sourceFile.seek(pos);
-      Serial.println(evaluateExpression());
-      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
-      Serial.println(evaluateExpression());
-      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
-      Serial.println(evaluateExpression());
-      sourceFile.seek(pos);
-      tft.drawPixel((unsigned int) evaluateExpression(), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
+      //      unsigned long pos = sourceFile.position();
+      //      while (!isControl(sourceFile.peek()))
+      //        Serial.write(sourceFile.read());
+      //      sourceFile.seek(pos);
+      //      Serial.println((unsigned int)evaluateExpression());
+      //      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
+      //      Serial.println((unsigned int)evaluateExpression());
+      //      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
+      //      Serial.println((unsigned int)evaluateExpression());
+      //      sourceFile.seek(pos);
+      drwPxl((unsigned int) evaluateExpression(), (unsigned int) ((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int) ((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
+      //      Serial.println(freeMemory());
+      //      tft.drawPixel(100, 10, 0);
       break;
   }
   discardRestOfLine();
+}
+
+void drwPxl(unsigned int color, unsigned int y, unsigned int x) {
+  tft.drawPixel(x, y, color);
 }
 
 int getNextCharInString() {
