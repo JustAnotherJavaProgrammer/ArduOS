@@ -12,7 +12,9 @@ IF A=42 THEN PRINT "A is 42"
 IF A=0 THEN PRINT "A is 0?!"
 GOSUB (A)
 PRINT "A is now ", A
-GOTO (A)
+GOSUB (A)
+PRINT "RETURNed from second GOSUB, should draw single pixel now"
+DRAW PIXEL 100,10,0
 END
 42 PRINT "GOSUB (A) was successfully evaluated!"
 (A) PRINT "Hit me Baby one more time!"

@@ -1,8 +1,10 @@
 // Implementation of Tiny BASIC
 #define internal_basic_stack_height 50
 
-const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF GOTO GOSUB "};
-const byte commandsCount PROGMEM = 8;
+const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF GOTO GOSUB DRAW "};
+const byte commandsCount PROGMEM = 9;
+const char drawCommands[] PROGMEM = {"PIXEL LINE FAST_VLINE FAST_HLINE RECT FRECT CIRC FCIRC ROUND_RECT FROUND_RECT ROUND_FRECT TRIANGLE FTRIANGLE SET_CURSOR SET_TEXT_COLOR SET_TEXT_SIZE SET_TEXT_WRAP TEXT FILL_SCREEN IMAGE "};
+const byte drawCommandsCount PROGMEM = 20;
 
 double internal_vars[26];
 unsigned long internal_stack[internal_basic_stack_height];
@@ -26,12 +28,11 @@ boolean openProgram(String fileName) {
   return false;
 }
 
-boolean execCommand() {
-  if (sourceFile == NULL || !sourceFile || !sourceFile.available()) {
-    return false;
-  }
+byte identifyCommand(const char* starting_byte, byte commandsCount) {
   unsigned long startingPos = sourceFile.position();
-  byte cmd = -1;
+  //  progmemPrint(starting_byte);
+  //  Serial.println(startingPos, HEX);
+  byte cmd = -1; // equal to 255 (byte is unsigned)
   {
     byte currChar = 255;
     for (byte i = 0; i < commandsCount;) {
@@ -40,7 +41,9 @@ boolean execCommand() {
         currChar++;
         //        Serial.print(cmds(currChar));
         int c = sourceFile.read();
-        switch (cmds(currChar)) {
+        //        Serial.print(c, HEX); Serial.print(F(","));
+        //        Serial.print(cmds(starting_byte, currChar), HEX); Serial.write(cmds(starting_byte, currChar)); Serial.print(F(" "));
+        switch (cmds(starting_byte, currChar)) {
           case '*':
             if (!isAlpha(c)) {
               cmd = i;
@@ -54,23 +57,39 @@ boolean execCommand() {
             } else
               goto not_this_command;
           default:
-            if (cmds(currChar) == toUpperCase(c))
+            if (cmds(starting_byte, currChar) == toUpperCase(c))
               continue;
             goto not_this_command;
         }
       }
 not_this_command:
-      while (cmds(currChar) != '*' && cmds(currChar) != ' ') {
+      while (cmds(starting_byte, currChar) != '*' && cmds(starting_byte, currChar) != ' ') {
         currChar++;
       }
-      currChar++;
+      //      currChar++;
       //      Serial.print(F("Not "));
       //      Serial.println(i);
       i++;
       continue;
     }
   }
+  sourceFile.seek(startingPos + 1);
 command_found:
+  return cmd;
+}
+
+boolean execCommand() {
+  if (sourceFile == NULL || !sourceFile || !sourceFile.available()) {
+    return false;
+  }
+  unsigned long startingPos = sourceFile.position();
+  byte cmd = identifyCommand(commands, commandsCount);
+  //    Serial.print(startingPos, HEX);
+  //    Serial.print(F(": "));
+  //  Serial.println(cmd);
+  //  if (cmd == 8) {
+  //    Serial.println(F("DRAW!"));
+  //  }
   switch (cmd) {
     case 0: // PRINT
       cmdPRINT();
@@ -97,26 +116,33 @@ command_found:
       break;
     case 6: // GOTO
     case 7: // GOSUB
-      unsigned long jumpTarget = findGOTO();
-      //      Serial.print(F("JT: "));
-      //      Serial.println(jumpTarget, HEX);
-      if (jumpTarget == sourceFile.position()) {
-        discardRestOfLine();
-        break;
+      {
+        unsigned long jumpTarget = findGOTO();
+        //      Serial.print(F("JT: "));
+        //      Serial.println(jumpTarget, HEX);
+        if (jumpTarget == sourceFile.position()) {
+          discardRestOfLine();
+          break;
+        }
+        if (cmd == 7) {
+          discardRestOfLine();
+          if (stackPos >= internal_basic_stack_height)
+            return false;
+          internal_stack[stackPos] = sourceFile.position();
+          stackPos++;
+        }
+        sourceFile.seek(jumpTarget);
       }
-      if (cmd == 7) {
-        discardRestOfLine();
-        if (stackPos >= internal_basic_stack_height)
-          return false;
-        internal_stack[stackPos] = sourceFile.position();
-        stackPos++;
-      }
-      sourceFile.seek(jumpTarget);
+      break;
+    case 8: // DRAW
+      //      Serial.println(F("cmdsDraw"));
+      cmdsDraw();
       break;
     default:
-      while (!isWhitespaceOrControl(sourceFile.peek())) {
-        sourceFile.read();
-      }
+      if (!isWhitespaceOrControl(lookBehind()))
+        while (!isWhitespaceOrControl(sourceFile.peek())) {
+          sourceFile.read();
+        }
       break;
   }
   return true;
@@ -289,6 +315,26 @@ boolean readAndDiscardWithEOLandEOFchecks() {
   //  Serial.print(sourceFile.peek(), HEX);
   //  Serial.println(isControl(sourceFile.peek()));
   return !sourceFile.available() || isControl(sourceFile.read());
+}
+
+void cmdsDraw() {
+  byte cmd = identifyCommand(drawCommands, drawCommandsCount);
+  switch (cmd) {
+    case 0:
+      unsigned long pos = sourceFile.position();
+      while (!isControl(sourceFile.peek()))
+        Serial.write(sourceFile.read());
+      sourceFile.seek(pos);
+      Serial.println(evaluateExpression());
+      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
+      Serial.println(evaluateExpression());
+      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
+      Serial.println(evaluateExpression());
+      sourceFile.seek(pos);
+      tft.drawPixel((unsigned int) evaluateExpression(), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
+      break;
+  }
+  discardRestOfLine();
 }
 
 int getNextCharInString() {
@@ -529,6 +575,6 @@ int lookAhead(int num) {
   return res;
 }
 
-int cmds(byte i) {
-  return pgm_read_byte_near(commands + i);
+int cmds(const char* start_byte, byte i) {
+  return pgm_read_byte_near(start_byte + i);
 }
