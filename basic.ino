@@ -1,9 +1,9 @@
 // Implementation of Tiny BASIC
 #define internal_basic_stack_height 50
 
-const char commands[] PROGMEM = {"PRINT REM RETURN*END*LET IF GOTO GOSUB DRAW "};
+const char commands[] PROGMEM = { "PRINT REM RETURN*END*LET IF GOTO GOSUB DRAW " };
 const byte commandsCount PROGMEM = 9;
-const char drawCommands[] PROGMEM = {"PIXEL LINE FAST_VLINE FAST_HLINE RECT FRECT CIRC FCIRC ROUND_RECT FROUND_RECT ROUND_FRECT TRIANGLE FTRIANGLE SET_CURSOR SET_TEXT_COLOR SET_TEXT_SIZE SET_TEXT_WRAP TEXT FILL_SCREEN IMAGE "};
+const char drawCommands[] PROGMEM = { "PIXEL LINE FAST_VLINE FAST_HLINE RECT FRECT CIRC FCIRC ROUND_RECT FROUND_RECT ROUND_FRECT TRIANGLE FTRIANGLE SET_CURSOR SET_TEXT_COLOR SET_TEXT_SIZE SET_TEXT_WRAP TEXT FILL_SCREEN IMAGE " };
 const byte drawCommandsCount PROGMEM = 20;
 
 double internal_vars[26];
@@ -28,11 +28,11 @@ boolean openProgram(String fileName) {
   return false;
 }
 
-byte identifyCommand(const char* starting_byte, byte commandsCount) {
+byte identifyCommand(const char *starting_byte, byte commandsCount) {
   unsigned long startingPos = sourceFile.position();
   //  progmemPrint(starting_byte);
   //  Serial.println(startingPos, HEX);
-  byte cmd = -1; // equal to 255 (byte is unsigned)
+  byte cmd = -1;  // equal to 255 (byte is unsigned)
   {
     byte currChar = 255;
     for (byte i = 0; i < commandsCount;) {
@@ -91,31 +91,31 @@ boolean execCommand() {
   //    Serial.println(F("DRAW!"));
   //  }
   switch (cmd) {
-    case 0: // PRINT
+    case 0:  // PRINT
       cmdPRINT();
       break;
-    case 1: // REM
+    case 1:  // REM
       discardRestOfLine();
       break;
-    case 2: // RETURN
+    case 2:  // RETURN
       if (stackPos > 0) {
         stackPos--;
         sourceFile.seek(internal_stack[stackPos]);
         break;
       }
     // else: END execution of current program
-    case 3: // END
+    case 3:  // END
       sourceFile.close();
       break;
-    case 4: // LET
+    case 4:  // LET
       cmdLET();
       break;
-    case 5: // IF
+    case 5:  // IF
       if (evalCmp() < 0.0000000001)
         discardRestOfLine();
       break;
-    case 6: // GOTO
-    case 7: // GOSUB
+    case 6:  // GOTO
+    case 7:  // GOSUB
       {
         unsigned long jumpTarget = findGOTO();
         //      Serial.print(F("JT: "));
@@ -134,7 +134,7 @@ boolean execCommand() {
         sourceFile.seek(jumpTarget);
       }
       break;
-    case 8: // DRAW
+    case 8:  // DRAW
       //      Serial.println(F("cmdsDraw"));
       cmdsDraw();
       break;
@@ -167,7 +167,7 @@ void cmdPRINT() {
       sourceFile.read();
       while (true) {
         int nextChar = getNextCharInString();
-        if (nextChar  < 0) {
+        if (nextChar < 0) {
           if (nextChar == -2)
             goto end_of_loop;
           break;
@@ -245,7 +245,7 @@ unsigned long findGOTO() {
     sourceFile.read();
   unsigned long startingPos = sourceFile.position();
   unsigned long res = startingPos;
-  if (sourceFile.peek() == '(') { // goto also works with expressions in brackets as arguments
+  if (sourceFile.peek() == '(') {  // goto also works with expressions in brackets as arguments
     double trgt = evaluateExpression();
     sourceFile.seek(0);
     while (sourceFile.available()) {
@@ -256,9 +256,7 @@ unsigned long findGOTO() {
       int c = sourceFile.peek();
       //      Serial.write(c);
       unsigned long lineBeg = sourceFile.position();
-      if (((isDigit(c) || c == '-' || (c == '.' && !shouldDiscardFloatingPoint(trgt))) &&
-           ((shouldDiscardFloatingPoint(trgt) && sourceFile.parseInt() == (long) trgt) || sourceFile.parseFloat() == trgt)) ||
-          (c == '(' && (sourceFile.seek(lineBeg), trgt == evaluateExpression()))) { // It also evaluates expressions between brackets at the beginning of possible target lines!
+      if (((isDigit(c) || c == '-' || (c == '.' && !shouldDiscardFloatingPoint(trgt))) && ((shouldDiscardFloatingPoint(trgt) && sourceFile.parseInt() == (long)trgt) || sourceFile.parseFloat() == trgt)) || (c == '(' && (sourceFile.seek(lineBeg), trgt == evaluateExpression()))) {  // It also evaluates expressions between brackets at the beginning of possible target lines!
         res = lineBeg;
         goto findGOTO_done;
       }
@@ -272,25 +270,27 @@ unsigned long findGOTO() {
     goto findGOTO_done;
   }
 
-  unsigned int wordLength = 0;
-  while (!isWhitespaceOrControl(sourceFile.read())) {
-    wordLength++;
-  }
-  sourceFile.seek(0);
-  while (sourceFile.available()) {
-    skipWhitespace();
-    unsigned long lineStart = sourceFile.position();
-    for (unsigned int i = 0; i < wordLength; i++) {
-      if ((sourceFile.seek(lineStart + i), sourceFile.read()) != (sourceFile.seek(startingPos + i), sourceFile.read())) {
-        sourceFile.seek(lineStart);
-        discardRestOfLine();
-        goto findGOTO_nextLine;
-      }
+  {
+    unsigned int wordLength = 0;
+    while (!isWhitespaceOrControl(sourceFile.read())) {
+      wordLength++;
     }
-    res = lineStart + wordLength;
-    break;
+    sourceFile.seek(0);
+    while (sourceFile.available()) {
+      skipWhitespace();
+      unsigned long lineStart = sourceFile.position();
+      for (unsigned int i = 0; i < wordLength; i++) {
+        if ((sourceFile.seek(lineStart + i), sourceFile.read()) != (sourceFile.seek(startingPos + i), sourceFile.read())) {
+          sourceFile.seek(lineStart);
+          discardRestOfLine();
+          goto findGOTO_nextLine;
+        }
+      }
+      res = lineStart + wordLength;
+      break;
 findGOTO_nextLine:
-    continue;
+      continue;
+    }
   }
 findGOTO_done:
   sourceFile.seek(startingPos);
@@ -331,7 +331,7 @@ void cmdsDraw() {
       //      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
       //      Serial.println((unsigned int)evaluateExpression());
       //      sourceFile.seek(pos);
-      drwPxl((unsigned int) evaluateExpression(), (unsigned int) ((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int) ((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
+      drwPxl((unsigned int)evaluateExpression(), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
       //      Serial.println(freeMemory());
       //      tft.drawPixel(100, 10, 0);
       break;
@@ -373,8 +373,7 @@ double evaluateExpression() {
   while (true) {
     //    Serial.println(sourceFile.position(), HEX);
     int val = sourceFile.read();
-    if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' ||
-        (charToUpperCase(sourceFile.peek()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
+    if (val == ',' || val == '"' || val == -1 || !sourceFile.available() || isControl(val) || val == '<' || val == '>' || val == '=' || (charToUpperCase(sourceFile.peek()) == 'T' && charToUpperCase(lookAhead(2)) == 'H' && charToUpperCase(lookAhead(3)) == 'E' && charToUpperCase(lookAhead(4)) == 'N' && isWhitespace(lookAhead(5))))
       break;
   }
   expLength = sourceFile.position() - startPos - (sourceFile.read() == -1 ? 0 : 1);
@@ -399,7 +398,7 @@ double evaluateExpression(int startPos, unsigned long len) {
     return INFINITY;
     //    }
   }
-  int minOp = 255; // 255 == NOTHING, return INFINITY to indicate an error
+  int minOp = 255;  // 255 == NOTHING, return INFINITY to indicate an error
   unsigned long opPos = startPos;
   int layer = 0;
   const unsigned long targetPos = startPos + len;
@@ -414,7 +413,7 @@ double evaluateExpression(int startPos, unsigned long len) {
         while (sourceFile.position() - lb >= startPos && isWhitespace(lookBehind(lb))) {
           lb++;
         }
-        if ((character == '+' || character == '-') && sourceFile.position() - lb >= startPos && lookBehind(lb) != '(' && lookBehind(lb) != ')') { // simple unary check
+        if ((character == '+' || character == '-') && sourceFile.position() - lb >= startPos && lookBehind(lb) != '(' && lookBehind(lb) != ')') {  // simple unary check
           if (character == '+')
             minOp = 0;
           else if (character == '-')
@@ -465,8 +464,7 @@ double evaluateExpression(int startPos, unsigned long len) {
         if ((isAlpha(character) || character == '_') && !isAlpha(lookBehind(2)) && lookBehind() != '_') {
           minOp = 10;
           goto setPos;
-        }
-        else if (!isAlpha(lookBehind()) && character != '_') {
+        } else if (!isAlpha(lookBehind()) && character != '_') {
           minOp = 9;
           goto setPos;
         }
@@ -517,7 +515,7 @@ layerCheck:
       case 3:
         return left_side / right_side;
       case 4:
-        return (int) left_side % (int)right_side;
+        return (int)left_side % (int)right_side;
     }
   }
   switch (minOp) {
@@ -530,7 +528,7 @@ layerCheck:
       return -evaluateExpression(opPos + 1, targetPos - opPos - 1);
     case 9:
       sourceFile.seek(opPos);
-      return (double) sourceFile.parseFloat();
+      return (double)sourceFile.parseFloat();
     case 10:
       sourceFile.seek(opPos);
       //      Serial.println(sourceFile.peek());
@@ -581,6 +579,6 @@ int lookAhead(int num) {
   return res;
 }
 
-int cmds(const char* start_byte, byte i) {
+int cmds(const char *start_byte, byte i) {
   return pgm_read_byte_near(start_byte + i);
 }
