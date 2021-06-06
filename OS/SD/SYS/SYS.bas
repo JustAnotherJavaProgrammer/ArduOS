@@ -1,3 +1,5 @@
+REM draw logo
+DRAW IMAGE 20, 78, "ARDUOS.BMP"
 REM Testing commands
 PRINT "Hello BASIC!"
 PRINT "3-4-2 should be -3 and is ", 3-4-2
@@ -14,7 +16,7 @@ GOSUB (A)
 PRINT "A is now ", A
 GOSUB (A)
 PRINT "RETURNed from second GOSUB, should draw single pixel now"
-DRAW PIXEL 100,10,0
+DRAW FRECT 100, 10, 69, 128, 31712
 END
 42 PRINT "GOSUB (A) was successfully evaluated!"
 (A) PRINT "Hit me Baby one more time!"

@@ -11,14 +11,14 @@
 #define LCD_WR A1
 #define LCD_RD A0
 #define LCD_RESET A4
-#define  BLACK   0x0000
-#define BLUE    0x001F
-#define RED     0xF800
-#define GREEN   0x07E0
-#define CYAN    0x07FF
+#define BLACK 0x0000
+#define BLUE 0x001F
+#define RED 0xF800
+#define GREEN 0x07E0
+#define CYAN 0x07FF
 #define MAGENTA 0xF81F
-#define YELLOW  0xFFE0
-#define WHITE   0xFFFF
+#define YELLOW 0xFFE0
+#define WHITE 0xFFFF
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
 
@@ -48,9 +48,10 @@ double d = 32.4e-3;
 //byte drawBmp(char *filename, int x, int y);
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(9600);
+  // Serial.begin(9600);
   tft.reset();
-  tft.begin(tft.readID());
+  // tft.begin(tft.readID());
+  tft.begin(0x9341);
   tft.setRotation(1);
   tft.fillScreen(WHITE);
   tft.setTextColor(BLACK);
@@ -59,10 +60,10 @@ void setup() {
   tft.setTextWrap(false);
   tft.println(F("ArduOS"));
   tft.setTextSize(2);
-  tft.setCursor(23, 142); // y: 78+64
+  tft.setCursor(23, 142);  // y: 78+64
   tft.println(F("Loading, please wait..."));
   tft.setTextSize(1);
-  tft.setCursor(290 , 232);
+  tft.setCursor(290, 232);
   tft.println(F("v0.01"));
 
   // Serial.println(d);
@@ -85,21 +86,23 @@ void setup() {
     tft.setCursor(23, 142);
     tft.println(F("Loading, please wait..."));
   }
-  byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
-  if (drawResult != SUCCESS) {
-    switch (drawResult) {
-      case FILE_NOT_FOUND:
-        drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
-      case BAD_FORMAT:
-        drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
-    }
-  }
+  // byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
+  // if (drawResult != SUCCESS) {
+  //   switch (drawResult) {
+  //     case FILE_NOT_FOUND:
+  //       drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
+  //     case BAD_FORMAT:
+  //       drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
+  //   }
+  // }
   if (!openProgram("SYS/SYS.BAS")) {
     drawFatalErrorMsg(F("System file \"SYS.BAS\" not found"));
   }
+  tft.setCursor(0, 0);
+  tft.setTextWrap(true);
 }
 
-void drawFatalErrorMsg(const __FlashStringHelper* text) {
+void drawFatalErrorMsg(const __FlashStringHelper *text) {
   tft.fillRect(21, 140, 276, 20, WHITE);
   tft.setTextColor(RED);
   tft.setCursor(23, 142);

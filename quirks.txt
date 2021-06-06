@@ -1,0 +1,1 @@
+If you use DRAW SET_TEXT_COLOR and want the text background color to be black, you must set it to an equal value as the text color itself. Providing a background_color argument of 0 will not work!

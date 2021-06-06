@@ -3,7 +3,7 @@
 
 const char commands[] PROGMEM = { "PRINT REM RETURN*END*LET IF GOTO GOSUB DRAW " };
 const byte commandsCount PROGMEM = 9;
-const char drawCommands[] PROGMEM = { "PIXEL LINE FAST_VLINE FAST_HLINE RECT FRECT CIRC FCIRC ROUND_RECT FROUND_RECT ROUND_FRECT TRIANGLE FTRIANGLE SET_CURSOR SET_TEXT_COLOR SET_TEXT_SIZE SET_TEXT_WRAP TEXT FILL_SCREEN IMAGE " };
+const char drawCommands[] PROGMEM = { "PIXEL LINE FAST_VLINE FAST_HLINE RECT FRECT CIRC FCIRC ROUND_RECT FROUND_RECT ROUND_FRECT TRIANGLE FTRIANGLE SET_CURSOR SET_TEXT_COLOR SET_TEXT_SIZE FILL_SCREEN IMAGE SET_TEXT_WRAP TEXT " };
 const byte drawCommandsCount PROGMEM = 20;
 
 double internal_vars[26];
@@ -172,7 +172,7 @@ void cmdPRINT() {
             goto end_of_loop;
           break;
         }
-        Serial.write(nextChar);
+        tft.write(nextChar);
       }
       continue;
     }
@@ -180,12 +180,12 @@ void cmdPRINT() {
     //    Serial.println(F("Expressions aren't implemented yet, sorry!"));
     double val = evaluateExpression();
     if (shouldDiscardFloatingPoint(val))
-      Serial.print((long)val);
+      tft.print((long)val);
     else
-      Serial.print(val);
+      tft.print(val);
   }
 end_of_loop:
-  Serial.println();
+  tft.println();
 }
 
 boolean shouldDiscardFloatingPoint(double val) {
@@ -319,8 +319,23 @@ boolean readAndDiscardWithEOLandEOFchecks() {
 
 void cmdsDraw() {
   byte cmd = identifyCommand(drawCommands, drawCommandsCount);
+  // Read all numeric arguments for all DRAW commands at once to save on program memory (flash)
+  uint16_t args[7];
+  if (cmd < 18) {
+    bool stopNext = false;
+    for (byte i = 0; i < 7; i++) {
+      // args[i] = sourceFile.peek() == ',' || i == 0 ? evaluateExpression() : 0;
+      if (sourceFile.peek() == ',')
+        sourceFile.read();
+      skipWhitespace();
+      args[i] = !isControl(sourceFile.peek()) && (cmd != 17 || i < 2) ? evaluateExpression() : 0;
+      // Serial.print(i);
+      // Serial.print(F(": "));
+      // Serial.println(args[i]);
+    }
+  }
   switch (cmd) {
-    case 0:
+    case 0:  // DRAW PIXEL x, y, color
       //      unsigned long pos = sourceFile.position();
       //      while (!isControl(sourceFile.peek()))
       //        Serial.write(sourceFile.read());
@@ -331,16 +346,78 @@ void cmdsDraw() {
       //      (sourceFile.peek() == ',' ? sourceFile.read() : 0);
       //      Serial.println((unsigned int)evaluateExpression());
       //      sourceFile.seek(pos);
-      drwPxl((unsigned int)evaluateExpression(), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()), (unsigned int)((sourceFile.peek() == ',' ? sourceFile.read() : 0), evaluateExpression()));
+      tft.drawPixel(args[0], args[1], args[2]);
       //      Serial.println(freeMemory());
       //      tft.drawPixel(100, 10, 0);
       break;
+    case 1:  // DRAW LINE x0, y0, x1, y1, color
+      tft.drawLine(args[0], args[1], args[2], args[3], args[4]);
+      break;
+    case 2:  // DRAW FAST_VLINE x0, y0, length, color
+      tft.drawFastVLine(args[0], args[1], args[2], args[3]);
+      break;
+    case 3:  // DRAW FAST_HLINE x0, y0, length, color
+      tft.drawFastHLine(args[0], args[1], args[2], args[3]);
+      break;
+    case 4:  // DRAW RECT x, y, width, height, color
+      tft.drawRect(args[0], args[1], args[2], args[3], args[4]);
+      break;
+    case 5:  // DRAW FRECT x, y, width, height, color
+      tft.fillRect(args[0], args[1], args[2], args[3], args[4]);
+      break;
+    case 6:  // DRAW CIRC x0, y0, radius, color
+      tft.drawCircle(args[0], args[1], args[2], args[3]);
+      break;
+    case 7:  // DRAW FCIRC x0, y0, radius, color
+      tft.fillCircle(args[0], args[1], args[2], args[3]);
+      break;
+    case 8:  // DRAW ROUND_RECT x0, y0, width, height, radius, color
+      tft.drawRoundRect(args[0], args[1], args[2], args[3], args[4], args[5]);
+      break;
+    case 9:   // DRAW FROUND_RECT
+    case 10:  // DRAW ROUND_FRECT
+      tft.fillRoundRect(args[0], args[1], args[2], args[3], args[4], args[5]);
+      break;
+    case 11:  // DRAW TRIANGLE x0, y0, x1, y1, x2, y2, color
+      tft.drawTriangle(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+      break;
+    case 12:  // DRAW FTRIANGLE
+      tft.fillTriangle(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+      break;
+    case 13:  // DRAW SET_CURSOR x0, y0
+      tft.setCursor(args[0], args[1]);
+      break;
+    case 14:  // DRAW SET_TEXT_COLOR color, [background_color]
+      if (args[1] == 0) {
+        tft.setTextColor(args[0]);
+        break;
+      }
+      if (args[0] == args[1])
+        args[1] = 0;
+      tft.setTextColor(args[0], args[1]);
+      break;
+    case 15:  // DRAW SET_TEXT_SIZE size
+      tft.setTextSize(args[0]);
+      break;
+    case 16:  // DRAW FILL_SCREEN color
+      tft.fillScreen(args[0]);
+      break;
+    case 17:  // DRAW IMAGE x, y, filename_string
+      if (sourceFile.peek() != '\"')
+        break;
+      sourceFile.read();
+      // Serial.println(freeMemory());
+      drawBmp(sourceFile.readStringUntil('"').c_str(), args[0], args[1]);
+      // Serial.println(freeMemory());
+      break;
+    case 18:  // DRAW SET_TEXT_WRAP
+      tft.setTextWrap(evalCmp() < 0.0000000001);
+      break;
+    case 19:  // DRAW TEXT
+      cmdPRINT();
+      return;
   }
   discardRestOfLine();
-}
-
-void drwPxl(unsigned int color, unsigned int y, unsigned int x) {
-  tft.drawPixel(x, y, color);
 }
 
 int getNextCharInString() {
