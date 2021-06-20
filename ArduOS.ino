@@ -19,6 +19,7 @@
 #define MAGENTA 0xF81F
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
+// #define ENABLE_TINY_BASIC
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
 
@@ -44,34 +45,40 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define FILE_NOT_FOUND 1
 #define BAD_FORMAT 2
 
+Runner main_runner = BytecodeRunner();
+
 double d = 32.4e-3;
 //byte drawBmp(char *filename, int x, int y);
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
+  // pinMode(LED_BUILTIN, OUTPUT);
   // Serial.begin(9600);
-  tft.reset();
+  // tft.reset();
   // tft.begin(tft.readID());
   tft.begin(0x9341);
-  tft.setRotation(1);
+  // tft.setTextSize(1);
   tft.fillScreen(WHITE);
+   tft.setRotation(1);
   tft.setTextColor(BLACK);
+  // tft.setCursor(290, 232);
+  // tft.println(F("v0.01"));
+  // tft.setTextColor(BLACK);
   tft.setCursor(20, 78);
   tft.setTextSize(8);
-  tft.setTextWrap(false);
+  tft.setTextWrap(true);
+  // tft.setTextWrap(false);
   tft.println(F("ArduOS"));
-  tft.setTextSize(2);
-  tft.setCursor(23, 142);  // y: 78+64
-  tft.println(F("Loading, please wait..."));
-  tft.setTextSize(1);
-  tft.setCursor(290, 232);
-  tft.println(F("v0.01"));
 
   // Serial.println(d);
 
   // For SD:
   pinMode(10, OUTPUT);
 
-  while (!SD.begin(10)) {
+  while (true) {
+    tft.setTextSize(2);
+    tft.setCursor(23, 142);  // y: 78+64
+    tft.println(F("Loading, please wait..."));
+    if (SD.begin(10))
+      break;
     tft.setTextSize(2);
     tft.fillRect(21, 140, 276, 20, RED);
     tft.setTextColor(WHITE);
@@ -83,8 +90,6 @@ void setup() {
     while (!isPressed(readTFT())) {}
     tft.fillRect(21, 140, 276, 38, WHITE);
     tft.setTextColor(BLACK);
-    tft.setCursor(23, 142);
-    tft.println(F("Loading, please wait..."));
   }
   // byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
   // if (drawResult != SUCCESS) {
@@ -96,18 +101,15 @@ void setup() {
   //   }
   // }
   if (!openProgram("SYS/SYS.BAS")) {
-    drawFatalErrorMsg(F("System file \"SYS.BAS\" not found"));
+    drawFatalErrorMsg(F("SYS.BAS missing"));
   }
-  tft.setCursor(0, 0);
-  tft.setTextWrap(true);
 }
 
 void drawFatalErrorMsg(const __FlashStringHelper *text) {
-  tft.fillRect(21, 140, 276, 20, WHITE);
-  tft.setTextColor(RED);
+  // tft.fillRect(21, 140, 276, 20, WHITE);
+  tft.setTextColor(RED, WHITE);
   tft.setCursor(23, 142);
   tft.setTextSize(2);
-  tft.setTextWrap(true);
   tft.print(F("FATAL ERROR: "));
   tft.println(text);
   while (true) {}

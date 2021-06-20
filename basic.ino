@@ -1,3 +1,6 @@
+#ifdef ENABLE_TINY_BASIC
+
+#include "Print.h"
 // Implementation of Tiny BASIC
 #define internal_basic_stack_height 50
 
@@ -16,7 +19,7 @@ File sourceFile;
 //void cmdPRINT();
 //void cmdLET();
 
-boolean openProgram(String fileName) {
+boolean openProgram(char* fileName) {
   if (sourceFile != NULL) {
     sourceFile.close();
   }
@@ -92,7 +95,7 @@ boolean execCommand() {
   //  }
   switch (cmd) {
     case 0:  // PRINT
-      cmdPRINT();
+      cmdPRINT(tft);
       break;
     case 1:  // REM
       discardRestOfLine();
@@ -148,7 +151,7 @@ boolean execCommand() {
   return true;
 }
 
-void cmdPRINT() {
+void cmdPRINT(Print &printer) {
   while (true) {
     int la = sourceFile.peek();
     if (isWhitespace(la) || la == ',') {
@@ -172,7 +175,7 @@ void cmdPRINT() {
             goto end_of_loop;
           break;
         }
-        tft.write(nextChar);
+        printer.write(nextChar);
       }
       continue;
     }
@@ -180,12 +183,12 @@ void cmdPRINT() {
     //    Serial.println(F("Expressions aren't implemented yet, sorry!"));
     double val = evaluateExpression();
     if (shouldDiscardFloatingPoint(val))
-      tft.print((long)val);
+      printer.print((long)val);
     else
-      tft.print(val);
+      printer.print(val);
   }
 end_of_loop:
-  tft.println();
+  printer.println();
 }
 
 boolean shouldDiscardFloatingPoint(double val) {
@@ -403,18 +406,19 @@ void cmdsDraw() {
       tft.fillScreen(args[0]);
       break;
     case 17:  // DRAW IMAGE x, y, filename_string
-      if (sourceFile.peek() != '\"')
-        break;
-      sourceFile.read();
+      // if (sourceFile.peek() != '\"')
+      //   break;
+      // sourceFile.read();
       // Serial.println(freeMemory());
-      drawBmp(sourceFile.readStringUntil('"').c_str(), args[0], args[1]);
+      // drawBmp(sourceFile.readStringUntil('"').c_str(), args[0], args[1]);
+      drawBmp(readFilenameString(), args[0], args[1]);  
       // Serial.println(freeMemory());
       break;
     case 18:  // DRAW SET_TEXT_WRAP
       tft.setTextWrap(evalCmp() < 0.0000000001);
       break;
     case 19:  // DRAW TEXT
-      cmdPRINT();
+      cmdPRINT(tft);
       return;
   }
   discardRestOfLine();
@@ -439,6 +443,28 @@ int getNextCharInString() {
     return -1;
   }
   return character;
+}
+
+class StringPrinter : public Print {
+  String s = String();
+
+  size_t StringPrinter::write(uint8_t character) {
+    s.concat((char)character);
+    // return sizeof(uint8_t);
+  }
+
+  public: String getString() {
+    s.trim();
+    return s;
+  }
+};
+
+const char* readFilenameString() {
+  StringPrinter strPr = StringPrinter();
+  cmdPRINT(strPr);
+  tft.println(strPr.getString().c_str());  
+  // return strPr.getString().c_str();
+  return "";
 }
 
 double evaluateExpression() {
@@ -659,3 +685,5 @@ int lookAhead(int num) {
 int cmds(const char *start_byte, byte i) {
   return pgm_read_byte_near(start_byte + i);
 }
+
+#endif
