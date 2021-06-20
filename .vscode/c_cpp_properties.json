@@ -10,13 +10,19 @@
             "includePath": [
                 "D:/Lukas/git/ArduOS/include",
                 "D:/Lukas/git/ArduOS/src",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SD/src",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv/utility",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit GFX Library",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit BusIO",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 "C:/Users/lukas/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "C:/Users/lukas/.platformio/packages/framework-arduino-avr/variants/standard",
                 "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -24,13 +30,19 @@
                 "path": [
                     "D:/Lukas/git/ArduOS/include",
                     "D:/Lukas/git/ArduOS/src",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SD/src",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv/utility",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit GFX Library",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit BusIO",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     "C:/Users/lukas/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "C:/Users/lukas/.platformio/packages/framework-arduino-avr/variants/standard",
                     "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/HID/src",
-                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
             },
