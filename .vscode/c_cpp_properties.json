@@ -1,18 +1,55 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "PlatformIO",
             "includePath": [
-                "C:\\Users\\Lukas\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\**",
-                "C:\\Users\\Lukas\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\megaavr\\1.8.6\\**"
+                "D:/Lukas/git/ArduOS/include",
+                "D:/Lukas/git/ArduOS/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/variants/standard",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                ""
             ],
-            "forcedInclude": [
-                "C:\\Users\\Lukas\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\megaavr\\1.8.6\\cores\\arduino\\Arduino.h"
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "D:/Lukas/git/ArduOS/include",
+                    "D:/Lukas/git/ArduOS/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/variants/standard",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/lukas/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50101",
+                "ARDUINO_AVR_UNO",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega328P__",
+                ""
             ],
-            "intelliSenseMode": "msvc-x64",
-            "compilerPath": "D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.26.28801/bin/Hostx64/x64/cl.exe",
             "cStandard": "c11",
-            "cppStandard": "c++17"
+            "cppStandard": "c++11",
+            "compilerPath": "C:/Users/lukas/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+            "compilerArgs": [
+                "-mmcu=atmega328p",
+                ""
+            ]
         }
     ],
     "version": 4
