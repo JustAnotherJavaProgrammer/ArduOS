@@ -2,7 +2,7 @@
 #include <SD.h>
 #include <SPI.h>
 
-#include "bytecode_executor.h"
+#include "bytecode_executor.cpp" // Bad practice, I know
 #include "executor.h"
 
 // SdFat is actually a newer version of the same library.
@@ -53,7 +53,7 @@ TSPoint readTFT();
 void drawFatalErrorMsg(const __FlashStringHelper *text);
 bool isPressed(TSPoint p);
 
-Executor main_executor = BytecodeExecutor();
+BytecodeExecutor main_executor = BytecodeExecutor();
 double d = 32.4e-3;
 
 //byte drawBmp(char *filename, int x, int y);
@@ -107,10 +107,8 @@ void setup() {
     //       drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
     //   }
     // }
-    if (true
-        //  || !openProgram("SYS/SYS.BAS")
-    ) {
-        drawFatalErrorMsg(F("System file \"SYS.BAS\" not found"));
+    if (!main_executor.openProgram("SYS/BOOT.RUN")) {
+        drawFatalErrorMsg(F("System file \"BOOT.RUN\" not found"));
     }
     tft.setCursor(0, 0);
     tft.setTextWrap(true);

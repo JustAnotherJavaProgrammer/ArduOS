@@ -3,9 +3,8 @@
 
 class Executor {
     public:
-        // virtual ~Executor();
-        virtual bool openProgram(char* fileName);
-        virtual void execCommand();
+        virtual bool openProgram(const char* fileName) = 0;
+        virtual void execCommand() = 0;
 };
 
 #endif

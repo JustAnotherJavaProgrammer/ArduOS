@@ -1,5 +1,12 @@
-#include "executor.h"
+// #ifndef BYTECODE_EXECUTOR_H_ALREADY_SEEN_BEFORE
+// #define BYTECODE_EXECUTOR_H_ALREADY_SEEN_BEFORE
 
-class BytecodeExecutor : public Executor {
+// #include "executor.h"
 
-};
+// class BytecodeExecutor : public Executor {
+//    public:
+//     bool openProgram(const char* fileName);
+//     void execCommand();
+// };
+
+// #endif
