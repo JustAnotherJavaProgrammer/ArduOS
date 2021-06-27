@@ -53,7 +53,7 @@ TSPoint readTFT();
 void drawFatalErrorMsg(const __FlashStringHelper *text);
 bool isPressed(TSPoint p);
 
-BytecodeExecutor main_executor = BytecodeExecutor();
+BytecodeExecutor main_executor = BytecodeExecutor(0);
 double d = 32.4e-3;
 
 //byte drawBmp(char *filename, int x, int y);
