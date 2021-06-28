@@ -1,8 +1,10 @@
+#include "main.h"
+
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
 
-#include "bytecode_executor.cpp" // Bad practice, I know
+#include "bytecode_executor.cpp"  // Bad practice, I know
 #include "executor.h"
 
 // SdFat is actually a newer version of the same library.
@@ -49,14 +51,15 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define FILE_NOT_FOUND 1
 #define BAD_FORMAT 2
 
-TSPoint readTFT();
-void drawFatalErrorMsg(const __FlashStringHelper *text);
-bool isPressed(TSPoint p);
+// TSPoint readTFT();
+// void drawFatalErrorMsg(const __FlashStringHelper *text);
+// bool isPressed(TSPoint p);
 
+SysvarStore sysvars;
 BytecodeExecutor main_executor = BytecodeExecutor(0);
 double d = 32.4e-3;
 
-//byte drawBmp(char *filename, int x, int y);
+// byte drawBmp(char *filename, int x, int y);
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     // Serial.begin(9600);
@@ -71,7 +74,7 @@ void setup() {
     tft.setTextWrap(false);
     tft.println(F("ArduOS"));
     tft.setTextSize(2);
-    tft.setCursor(23, 142); // y: 78+64
+    tft.setCursor(23, 142);  // y: 78+64
     tft.println(F("Loading, please wait..."));
     tft.setTextSize(1);
     tft.setCursor(290, 232);
@@ -149,6 +152,4 @@ TSPoint readTFT() {
     return p;
 }
 
-bool isPressed(TSPoint p) {
-    return p.x >= 0 && p.x < tft.width() && p.y >= 0 && p.y < tft.height();
-}
+bool isPressed(TSPoint p) { return p.x >= 0 && p.x < tft.width() && p.y >= 0 && p.y < tft.height(); }

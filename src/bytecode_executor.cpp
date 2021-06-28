@@ -1,3 +1,5 @@
+#ifndef BYTECODE_EXECUTOR_ALREADY_SEEN
+#define BYTECODE_EXECUTOR_ALREADY_SEEN
 // #pragma once
 
 #include <Arduino.h>
@@ -25,7 +27,8 @@ class BytecodeExecutor : public Executor {
     bool currFileIoFile = 0;
     uint16_t sourceVersion;
     uint16_t registers[32];
-    uint32_t stack_pointer = MEM_MAX_ADDRESS / 2 + 1;
+    // uint32_t stack_pointer = MEM_MAX_ADDRESS / 2 + 1;
+    uint32_t stack_pointer;  // No initial assignment necessary, assignment happens later ~~dynamically~~ in openProgram()
     byte flags = 0;
     byte id;
 
@@ -51,6 +54,7 @@ class BytecodeExecutor : public Executor {
             if (!memFile)
 #endif
             memFile = createMemoryFile();
+            stack_pointer = MEM_MAX_ADDRESS / 2 + 1;
             // Serial.begin(9600);
             // Serial.print(F("Hello there! File version is: "));
             // Serial.println(sourceVersion);
@@ -286,9 +290,13 @@ class BytecodeExecutor : public Executor {
                 break;
             case 0x54:  // IMG regA~B
             case 0x55:  // IMGI byte1~3
+            case 0x6D:  // RUN regA~B
             {
-                char* filepath = readStringFromMemory(instruction[0] != 0x54 ? constFromRegisters(instruction[1], instruction[2]) : constFromBytes(&instruction[1], 3));
-                drawBmp(filepath, tft.getCursorX(), tft.getCursorY());
+                char* filepath = readStringFromMemory(instruction[0] == 0x55 ? constFromBytes(&instruction[1], 3) : constFromRegisters(instruction[1], instruction[2]));
+                if (instruction[0] == 0x6D)
+                    openProgram(filepath);
+                else
+                    drawBmp(filepath, tft.getCursorX(), tft.getCursorY());
                 free(filepath);
             } break;
             case 0x56:  // FEXISTS regA, regB~C
@@ -364,13 +372,24 @@ class BytecodeExecutor : public Executor {
                 break;
             case 0x69:  // SET regA, regB~C
             case 0x6A:  // SETI byte1, regB~C
-                // TODO: write to system variables
+                setSysvar(instruction[0] == 0x69 ? getRegister(instruction[1]) : instruction[1], constFromRegisters(instruction[1], instruction[2]));
                 break;
             case 0x6B:  // GET regA
             case 0x6C:  // GETI byte1
-                // TODO: read from system variables
+                setRegisters(0, 1, getSysvar(instruction[0] == 0x6B ? getRegister(instruction[1]) : instruction[1]));
+                break;
+            default:  // noop
                 break;
         }
+    }
+
+    uint32_t getSysvar(byte varId) {
+        // TODO: actually implement reading sysvars
+        return 0;
+    }
+
+    void setSysvar(byte varId, uint32_t value) {
+        // TODO: actually implement writing to sysvars
     }
 
     /**
@@ -471,3 +490,5 @@ class BytecodeExecutor : public Executor {
         return memfile;
     }
 };
+
+#endif
