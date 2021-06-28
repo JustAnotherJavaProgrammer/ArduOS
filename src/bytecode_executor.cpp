@@ -5,6 +5,7 @@
 // #include <HardwareSerial.h>
 
 #include "executor.h"
+#include "main.h"
 
 // #define CLEARMEMFILE_EVERY_PROGRAM
 
@@ -14,6 +15,7 @@
 #define FLAG_BIT_COPY_STORE 3
 
 #define MEM_MAX_ADDRESS 0x7FFFFFF  // 128 MiB
+#define pushToStack(a) setMemAddr(stack_pointer--, a)
 
 class BytecodeExecutor : public Executor {
     File sourceFile;
@@ -178,14 +180,10 @@ class BytecodeExecutor : public Executor {
                 setMemAddr(constFromRegisters(instruction[2], instruction[3]), instruction[1]);
                 break;
             case 0x28:  // PUSH regA
-                setMemAddr(stack_pointer--, getRegister(instruction[1]));
+                pushToStack(getRegister(instruction[1]));
                 break;
             case 0x29:  // POP regA
-                if (stack_pointer < MEM_MAX_ADDRESS / 2 + 1) {
-                    setRegister(instruction[1], getMemAddr(stack_pointer));
-                    stack_pointer++;
-                } else
-                    setRegister(instruction[1], 0);
+                setRegister(instruction[1], popFromStack());
                 break;
             case 0x2A:  // SEB regA~regB
             case 0x2B:  // SEBI byte1~3
@@ -205,15 +203,99 @@ class BytecodeExecutor : public Executor {
                 int32_t tmp = constFromBytes(&instruction[1], 3);
                 bitWrite(tmp, 31, bitRead(tmp, 23));
                 bitClear(tmp, 23);
+                tmp *= 4;
                 sourceFile.seek(sourceFile.position() + tmp);
             } break;
             case 0x30:  // JMP regA~regB
             case 0x31:  // JMPI byte1~3
             case 0x32:  // CALL regA~regB
             case 0x33:  // CALLI byte1~3
+            case 0x3B:  // BREQ byte1~3
+            case 0x3C:  // BRNE byte1~3
+            case 0x3D:  // BRGR byte1~3
+            case 0x3E:  // BRLE byte1~3
+            case 0x3F:  // BREQGR byte1~3
+            case 0x40:  // BREQLE byte1~3
+            case 0x41:  // RBREQ regA~B
+            case 0x42:  // RBRNE regA~B
+            case 0x43:  // RBRGR regA~B
+            case 0x44:  // RBRLE regA~B
+            case 0x45:  // RBREQGR regA~B
+            case 0x46:  // RBREQLE regA~B
+                if (instruction[0] > 0x31 && instruction[0] < 0x34) {
+                    uint32_t currPos = sourceFile.position();
+                    pushToStack((uint16_t)currPos);
+                    pushToStack((uint16_t)(currPos >> 16));
+                }
+                // Please forgive me
+                if (instruction[0] < 0x34 ||
+                    ((instruction[0] == 0x3B || (instruction[0] > 0x3E && instruction[0] < 0x42) || instruction[0] == 0x45 || instruction[0] == 0x46) && getFlag(FLAG_EQUAL)) ||
+                    ((instruction[0] == 0x3C || instruction[0] == 0x41) && !getFlag(FLAG_EQUAL)) ||
+                    ((instruction[0] == 0x3D || instruction[0] == 0x3F || instruction[0] == 0x43 || instruction[0] == 0x45) && getFlag(FLAG_GREATER_THAN)) ||
+                    ((instruction[0] == 0x3E || instruction[0] == 0x40 || instruction[0] == 0x44 || instruction[0] == 0x46) && !getFlag(FLAG_GREATER_THAN)))
+                    sourceFile.seek(((instruction[0] < 0x34 && instruction[0] % 2 == 0) || instruction[0] > 0x40 ? constFromRegisters(instruction[1], instruction[2])
+                                                                                                                 : constFromBytes(&instruction[1], 3)) *
+                                    4);
+                break;
+            case 0x34:  // RET
+            {
+                uint32_t targetAddr = ((uint32_t)popFromStack()) << 16;
+                sourceFile.seek(targetAddr + popFromStack());
+            } break;
+            case 0x35:  // SEQ
+            case 0x36:  // SNE
+            case 0x37:  // SGR
+            case 0x38:  // SLE
+            case 0x39:  // SEQGR
+            case 0x3A:  // SEQLE
+                if (((instruction[0] == 0x35 || instruction[0] > 0x38) && getFlag(FLAG_EQUAL)) || (instruction[0] == 0x36 && !getFlag(FLAG_EQUAL)) ||
+                    (instruction[0] > 0x36 && (instruction[0] % 2 == 0 ? !getFlag(FLAG_GREATER_THAN) : getFlag(FLAG_GREATER_THAN))))
+                    sourceFile.seek(sourceFile.position() + 4);
+                break;
+            case 0x47:  // PXL regA, regB, regC
+                tft.drawPixel(getRegister(instruction[1]), getRegister(instruction[2]), getRegister(instruction[3]));
+                break;
+            case 0x48:  // SCLR regA
+            case 0x49:  // SCLRI byte1~2
+                tft.fillScreen(instruction[0] == 0x48 ? getRegister(instruction[1]) : constFromBytes(&instruction[1], 2));
+                break;
+            case 0x4A:  // TSIZ regA
+            case 0x4B:  // TSIZI byte1
+                tft.setTextSize(instruction[0] == 0x4A ? getRegister(instruction[1]) : instruction[1]);
+                break;
+            case 0x4C:  // TCOL regA
+            case 0x4E:  // TCOLI byte1~2
+                tft.setTextColor(instruction[1] == 0x4C ? getRegister(instruction[1]) : constFromBytes(&instruction[1], 2));
+                break;
+            case 0x4D:  // TCOLB regA, regB
+                tft.setTextColor(getRegister(instruction[1]), getRegister(instruction[2]));
+                break;
+            case 0x4F:  // TWRAP regA
+            case 0x50:  // TWRAPI byte1
+                tft.setTextWrap((instruction[0] == 0x4F ? getRegister(instruction[1]) : instruction[1]) != 0);
+                break;
+            case 0x51:  // TCPOS regA, regB
+                tft.setCursor(getRegister(instruction[1]), getRegister(instruction[2]));
+                break;
+            case 0x52:  // TOUT regA
+            case 0x53:  // TOUTI byte1
+                tft.print((char)(instruction[0] == 0x52 ? getRegister(instruction[1]) : instruction[1]));
+                break;
+            case 0x54:  // IMG regA~B
+            case 0x55:  // IMGI byte1~3
                 // TODO: implement instruction
+                // TODO: read string from memfile
                 break;
         }
+    }
+
+    uint16_t popFromStack() {
+        uint16_t retVal = 0;
+        if (stack_pointer < MEM_MAX_ADDRESS / 2 + 1) {
+            retVal = getMemAddr(stack_pointer);
+            stack_pointer++;
+        }
+        return retVal;
     }
 
     uint16_t getMemAddr(const uint32_t addr) {
