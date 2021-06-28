@@ -5,6 +5,7 @@
 // #include <HardwareSerial.h>
 
 #include "executor.h"
+#include "graphics.h"
 #include "main.h"
 
 // #define CLEARMEMFILE_EVERY_PROGRAM
@@ -20,6 +21,8 @@
 class BytecodeExecutor : public Executor {
     File sourceFile;
     File memFile;
+    File fileioFiles[2];
+    bool currFileIoFile = 0;
     uint16_t sourceVersion;
     uint16_t registers[32];
     uint32_t stack_pointer = MEM_MAX_ADDRESS / 2 + 1;
@@ -283,10 +286,107 @@ class BytecodeExecutor : public Executor {
                 break;
             case 0x54:  // IMG regA~B
             case 0x55:  // IMGI byte1~3
-                // TODO: implement instruction
-                // TODO: read string from memfile
+            {
+                char* filepath = readStringFromMemory(instruction[0] != 0x54 ? constFromRegisters(instruction[1], instruction[2]) : constFromBytes(&instruction[1], 3));
+                drawBmp(filepath, tft.getCursorX(), tft.getCursorY());
+                free(filepath);
+            } break;
+            case 0x56:  // FEXISTS regA, regB~C
+            case 0x57:  // FMKDIR   regA, regB~C
+            case 0x58:  // FOPEN regA, regB~C
+            case 0x59:  // FREM regA, regB~C
+            case 0x5A:  // FRMDIR regA, regB~C
+            {
+                char* filepath = readStringFromMemory(constFromRegisters(instruction[2], instruction[3]));
+                bool success = false;
+                switch (instruction[0]) {
+                    case 0x56:  // FEXISTS regA, regB~C
+                        success = SD.exists(filepath);
+                        break;
+                    case 0x57:  // FMKDIR   regA, regB~C
+                        success = SD.mkdir(filepath);
+                        break;
+                    case 0x58:  // FOPEN regA, regB~C
+                        if (fileioFiles[currFileIoFile]) fileioFiles[currFileIoFile].close();
+                        fileioFiles[currFileIoFile] = SD.open(filepath, FILE_WRITE);
+                        fileioFiles[currFileIoFile].seek(0);
+                        success = (bool)fileioFiles[currFileIoFile];
+                        break;
+                    case 0x59:  // FREM regA, regB~C
+                        success = SD.remove(filepath);
+                        break;
+                    case 0x5A:  // FRMDIR regA, regB~C
+                        success = SD.rmdir(filepath);
+                        break;
+                }
+                free(filepath);
+                setRegister(instruction[1], success);
+            } break;
+            case 0x5B:  // FNAME regA, regB
+                setRegister(instruction[1], instruction[0] == 0x5B ? fileioFiles[currFileIoFile].name()[getRegister(instruction[2])] : fileioFiles[currFileIoFile].available());
+                break;
+            case 0x5C:  // FAV regA
+                setRegister(instruction[1], fileioFiles[currFileIoFile].available());
+                break;
+            case 0x5D:  // FCLOS
+                fileioFiles[currFileIoFile].close();
+                break;
+            case 0x5E:  // FFLUS
+                fileioFiles[currFileIoFile].flush();
+                break;
+            case 0x5F:  // FPEK regA
+            case 0x68:  // FIN regA
+                setRegister(instruction[1], instruction[0] == 0x5F ? fileioFiles[currFileIoFile].peek() : fileioFiles[currFileIoFile].read());
+                break;
+            case 0x60:  // FPOS
+                setRegisters(0, 1, fileioFiles[currFileIoFile].position());
+                break;
+            case 0x61:  // FSEK regA, regB~C
+            case 0x63:  // FISDIR regA
+                setRegister(instruction[1], instruction[0] == 0x61 ? fileioFiles[currFileIoFile].seek(constFromRegisters(instruction[2], instruction[3]))
+                                                                   : fileioFiles[currFileIoFile].isDirectory());
+                break;
+            case 0x62:  // FSEKI byte1~3
+                setFlag(FLAG_BIT_COPY_STORE, fileioFiles[currFileIoFile].seek(constFromBytes(&instruction[1], 3)));
+                break;
+            case 0x64:  // FNEXT
+                currFileIoFile = !currFileIoFile;
+                if (fileioFiles[currFileIoFile]) fileioFiles[currFileIoFile].close();
+                fileioFiles[currFileIoFile] = fileioFiles[!currFileIoFile].openNextFile();
+                setFlag(FLAG_BIT_COPY_STORE, fileioFiles[currFileIoFile]);
+                break;
+            case 0x65:  // FREW
+                fileioFiles[currFileIoFile].rewindDirectory();
+                break;
+            case 0x66:  // FOUT regA
+            case 0x67:  // FOUTI byte1
+                fileioFiles[currFileIoFile].write(instruction[0] == 0x66 ? getRegister(instruction[1]) : instruction[1]);
+                break;
+            case 0x69:  // SET regA, regB~C
+            case 0x6A:  // SETI byte1, regB~C
+                // TODO: write to system variables
+                break;
+            case 0x6B:  // GET regA
+            case 0x6C:  // GETI byte1
+                // TODO: read from system variables
                 break;
         }
+    }
+
+    /**
+     * WARNING: Please call free() to free up memory afrer using the string!!!
+     */
+    char* readStringFromMemory(const uint32_t addr) {
+        uint16_t str_len = 0;
+        while (((byte)getMemAddr(addr + str_len)) != 0) {
+            str_len++;
+        }
+        str_len++;
+        char* memStr = (char*)malloc(str_len);
+        for (uint16_t len = 0; len < str_len; len++) {
+            memStr[len] = (char)getMemAddr(addr + len);
+        }
+        return memStr;
     }
 
     uint16_t popFromStack() {
