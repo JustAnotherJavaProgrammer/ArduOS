@@ -4,7 +4,7 @@
 class Executor {
     public:
         virtual bool openProgram(const char* fileName) = 0;
-        virtual void execCommand() = 0;
+        virtual bool execCommand() = 0;
 };
 
 #endif

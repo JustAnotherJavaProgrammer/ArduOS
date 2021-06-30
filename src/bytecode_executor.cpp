@@ -4,11 +4,13 @@
 
 #include <Arduino.h>
 #include <SD.h>
+// #include <SDFat.h>
 // #include <HardwareSerial.h>
 
 #include "executor.h"
 #include "graphics.h"
 #include "main.h"
+#include "util.h"
 
 // #define CLEARMEMFILE_EVERY_PROGRAM
 
@@ -44,10 +46,12 @@ class BytecodeExecutor : public Executor {
         if (sourceFile) {
             sourceFile.close();
         }
+        if (!SD.exists(fileName)) return false;
         sourceFile = SD.open(fileName);
         if (sourceFile) {
             sourceFile.seek(15);
             sourceVersion = (sourceFile.read() << 8) + sourceFile.read();
+            Serial.begin(9600);
 #ifdef CLEARMEMFILE_EVERY_PROGRAM
             if (memFile) memFile.close();
 #else
@@ -69,8 +73,11 @@ class BytecodeExecutor : public Executor {
         return false;
     }
 
-    void execCommand() {
-        // DO SOMETHING
+    bool execCommand() {
+        // execution complete or sourceFile corrupted
+        Serial.println(sourceFile.available());
+        Serial.println(sourceFile.position() - sourceFile.size());
+        if (!sourceFile || !sourceFile.available()) return false;
         byte instruction[4];
         sourceFile.readBytes(instruction, 4);
         switch (instruction[0]) {
@@ -381,15 +388,49 @@ class BytecodeExecutor : public Executor {
             default:  // noop
                 break;
         }
+        return true;
     }
 
     uint32_t getSysvar(byte varId) {
-        // TODO: actually implement reading sysvars
+        switch (varId) {
+            case 0:
+                return freeMemory();
+            case 1:
+                return tft.width();
+            case 2:
+                return tft.height();
+            case 3:
+                return sysvars.publicWidthChange;
+            case 4:
+                return sysvars.publicHeightChange;
+            case 5:
+                return sysvars.xOffset;
+            case 6:
+                return sysvars.yOffset;
+            default:
+                return 0;
+        }
         return 0;
     }
 
     void setSysvar(byte varId, uint32_t value) {
-        // TODO: actually implement writing to sysvars
+        switch (varId) {
+            case 3:
+                sysvars.publicWidthChange = value;
+                break;
+            case 4:
+                sysvars.publicHeightChange = value;
+                break;
+            case 5:
+                sysvars.xOffset = value;
+                break;
+            case 6:
+                sysvars.yOffset = value;
+                break;
+            default:
+                // do nothing, variable is read-only
+                break;
+        }
     }
 
     /**
@@ -479,12 +520,20 @@ class BytecodeExecutor : public Executor {
 
     File createMemoryFile() {
         const __FlashStringHelper* filename = id == 1 ? F("mem1.mem") : F("mem0.mem");
-        if (SD.exists(filename)) {
-            SD.remove(filename);
-        }
+        // if (SD.exists(filename)) {
+        //     SD.remove(filename);
+        // }
         File memfile = SD.open(filename, FILE_WRITE);
-        while (memfile.size() < MEM_MAX_ADDRESS + 1) {
-            memfile.write((byte)0x00);
+        uint32_t bytesWritten = memfile.size();
+        while (bytesWritten < MEM_MAX_ADDRESS + 1) {
+            while (!memfile.availableForWrite()) Serial.println(F("memfile not available for write..."));
+            Serial.println(bytesWritten);
+            memfile.print((char)bytesWritten);
+            bytesWritten++;
+            // if (memfile.size() > 0 && memfile.size() % 512 == 0) {
+            //     Serial.println("flushing...");
+            //     memfile.flush();
+            // }
         }
         memfile.flush();
         return memfile;

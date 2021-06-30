@@ -26,6 +26,7 @@
 #define MAGENTA 0xF81F
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
+
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
 
@@ -101,15 +102,15 @@ void setup() {
         tft.setCursor(23, 142);
         tft.println(F("Loading, please wait..."));
     }
-    // byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
-    // if (drawResult != SUCCESS) {
-    //   switch (drawResult) {
-    //     case FILE_NOT_FOUND:
-    //       drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
-    //     case BAD_FORMAT:
-    //       drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
-    //   }
-    // }
+    byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
+    if (drawResult != SUCCESS) {
+      switch (drawResult) {
+        case FILE_NOT_FOUND:
+          drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
+        case BAD_FORMAT:
+          drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
+      }
+    }
     if (!main_executor.openProgram("SYS/BOOT.RUN")) {
         drawFatalErrorMsg(F("System file \"BOOT.RUN\" not found"));
     }
@@ -131,7 +132,9 @@ void drawFatalErrorMsg(const __FlashStringHelper *text) {
 
 void loop() {
     // Program code
-    main_executor.execCommand();
+    if(!main_executor.execCommand() && !main_executor.openProgram("SYS/HOME.RUN")) {
+        drawFatalErrorMsg(F("System file \"HOME.RUN\" not found"));
+    }
 }
 
 // unsigned int color(byte r, byte g, byte b) {

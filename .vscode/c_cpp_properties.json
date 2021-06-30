@@ -10,8 +10,9 @@
             "includePath": [
                 "D:/Lukas/git/ArduOS/include",
                 "D:/Lukas/git/ArduOS/src",
-                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
                 "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SD/src",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SdFat/src",
+                "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
                 "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv",
                 "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv/utility",
                 "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit GFX Library",
@@ -30,8 +31,9 @@
                 "path": [
                     "D:/Lukas/git/ArduOS/include",
                     "D:/Lukas/git/ArduOS/src",
-                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
                     "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SD/src",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/SdFat/src",
+                    "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit TouchScreen",
                     "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv",
                     "D:/Lukas/git/ArduOS/.pio/libdeps/uno/MCUFRIEND_kbv/utility",
                     "D:/Lukas/git/ArduOS/.pio/libdeps/uno/Adafruit GFX Library",
