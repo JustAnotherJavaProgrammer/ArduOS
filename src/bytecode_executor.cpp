@@ -407,6 +407,10 @@ class BytecodeExecutor : public Executor {
                 return sysvars.xOffset;
             case 6:
                 return sysvars.yOffset;
+            case 7:
+                return currFileIoFile;
+            case 8:
+                return tft.getRotation();
             default:
                 return 0;
         }
@@ -426,6 +430,12 @@ class BytecodeExecutor : public Executor {
                 break;
             case 6:
                 sysvars.yOffset = value;
+                break;
+            case 7:
+                currFileIoFile = value;
+                break;
+            case 8:
+                tft.setRotation(value);
                 break;
             default:
                 // do nothing, variable is read-only
