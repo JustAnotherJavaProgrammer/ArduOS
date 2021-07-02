@@ -19,6 +19,7 @@
 #define FLAG_GREATER_THAN 2
 #define FLAG_BIT_COPY_STORE 3
 
+#define INSTRUCTION_OFFSET 17
 #define MEM_MAX_ADDRESS 0x7FFFFFF  // 128 MiB
 #define pushToStack(a) setMemAddr(stack_pointer--, a)
 
@@ -74,9 +75,9 @@ class BytecodeExecutor : public Executor {
     }
 
     bool execCommand() {
-        // execution complete or sourceFile corrupted
         Serial.println(sourceFile.available());
         Serial.println(sourceFile.position() - sourceFile.size());
+        // execution complete or sourceFile corrupted
         if (!sourceFile || !sourceFile.available()) return false;
         byte instruction[4];
         sourceFile.readBytes(instruction, 4);
@@ -237,7 +238,7 @@ class BytecodeExecutor : public Executor {
             case 0x45:  // RBREQGR regA~B
             case 0x46:  // RBREQLE regA~B
                 if (instruction[0] > 0x31 && instruction[0] < 0x34) {
-                    uint32_t currPos = sourceFile.position();
+                    uint32_t currPos = (sourceFile.position() - INSTRUCTION_OFFSET)/4;
                     pushToStack((uint16_t)currPos);
                     pushToStack((uint16_t)(currPos >> 16));
                 }
@@ -249,12 +250,12 @@ class BytecodeExecutor : public Executor {
                     ((instruction[0] == 0x3E || instruction[0] == 0x40 || instruction[0] == 0x44 || instruction[0] == 0x46) && !getFlag(FLAG_GREATER_THAN)))
                     sourceFile.seek(((instruction[0] < 0x34 && instruction[0] % 2 == 0) || instruction[0] > 0x40 ? constFromRegisters(instruction[1], instruction[2])
                                                                                                                  : constFromBytes(&instruction[1], 3)) *
-                                    4);
+                                    4 + INSTRUCTION_OFFSET);
                 break;
             case 0x34:  // RET
             {
                 uint32_t targetAddr = ((uint32_t)popFromStack()) << 16;
-                sourceFile.seek(targetAddr + popFromStack());
+                sourceFile.seek((targetAddr + popFromStack()) * 4 + INSTRUCTION_OFFSET);
             } break;
             case 0x35:  // SEQ
             case 0x36:  // SNE
