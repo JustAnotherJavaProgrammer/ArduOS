@@ -176,3 +176,5 @@ The `res` folder contains a list of [instructions](res/instruction_set.pdf) and 
 | 6         | y-offset                                          |     |     |
 | 7         | currently used file (value must either be 1 or 2) |     |     |
 | 8         | screen orientation (value must be 0, 1, 2 or 3)   |     |     |
+| 9         | result of micros()                                |     | x   |
+| 10        | result of millis()                                |     | x   |

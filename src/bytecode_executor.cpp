@@ -238,7 +238,7 @@ class BytecodeExecutor : public Executor {
             case 0x45:  // RBREQGR regA~B
             case 0x46:  // RBREQLE regA~B
                 if (instruction[0] > 0x31 && instruction[0] < 0x34) {
-                    uint32_t currPos = (sourceFile.position() - INSTRUCTION_OFFSET)/4;
+                    uint32_t currPos = (sourceFile.position() - INSTRUCTION_OFFSET) / 4;
                     pushToStack((uint16_t)currPos);
                     pushToStack((uint16_t)(currPos >> 16));
                 }
@@ -250,7 +250,8 @@ class BytecodeExecutor : public Executor {
                     ((instruction[0] == 0x3E || instruction[0] == 0x40 || instruction[0] == 0x44 || instruction[0] == 0x46) && !getFlag(FLAG_GREATER_THAN)))
                     sourceFile.seek(((instruction[0] < 0x34 && instruction[0] % 2 == 0) || instruction[0] > 0x40 ? constFromRegisters(instruction[1], instruction[2])
                                                                                                                  : constFromBytes(&instruction[1], 3)) *
-                                    4 + INSTRUCTION_OFFSET);
+                                        4 +
+                                    INSTRUCTION_OFFSET);
                 break;
             case 0x34:  // RET
             {
@@ -412,6 +413,10 @@ class BytecodeExecutor : public Executor {
                 return currFileIoFile;
             case 8:
                 return tft.getRotation();
+            case 9:
+                return micros();
+            case 10:
+                return millis();
             default:
                 return 0;
         }
