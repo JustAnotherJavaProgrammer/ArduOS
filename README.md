@@ -159,7 +159,7 @@ The `res` folder contains a list of [instructions](res/instruction_set.pdf) and 
 | 0x6A      | SETI     | set a system variable to the values of registers A and B (register B might not be accessed depending on the variable)                                   | sysvar ID       | register A (least significant bytes) | register B (most significant bytes) |                             |
 | 0x6B      | GET      | get a system variable, save to registers 0 and 1                                                                                                        | register A      | –                                    | –                                   | –                           |
 | 0x6C      | GETI     | get a system variable, save to registers 0 and 1                                                                                                        | sysvar ID       | –                                    | –                                   | –                           |
-| 0x6D      | RUN      | change the currently running program to the one with it's executable path described by the null-terminated string at memory address by reg A & B        | register A      | register B (most significant byte)   |                                     |                             |
+| 0x6D      | RUN      | change the currently running program to the one with it's executable path described by the null-terminated string at memory address by reg A & B        | register A      | register B (most significant byte)   | –                                   | –                           |
 
 (All following rows of the table up to instruction ID 0xFF are empty.)
 

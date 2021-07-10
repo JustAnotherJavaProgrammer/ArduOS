@@ -118,7 +118,7 @@ class BytecodeExecutor : public Executor {
             case 0x10:  // SBR regA, byte1~2
                 setRegister(instruction[1], getRegister(instruction[1]) | constFromBytes(&instruction[2], 2));
                 break;
-            case 0x11:                                                                                             // CBR regA, byte1~2
+            case 0x11:  // CBR regA, byte1~2                                                                                           // CBR regA, byte1~2
                 setRegister(instruction[1], getRegister(instruction[1]) & (~constFromBytes(&instruction[2], 2)));  // A & !B
                 break;
             case 0x12:  // TST regA
@@ -150,7 +150,7 @@ class BytecodeExecutor : public Executor {
                 setFlag(FLAG_CARRY, bitRead(regA, 15));
                 setRegister(instruction[1], (regA << 1) + tmp);
             } break;
-            case 0x1B:  // RSL regA
+            case 0x1B:  // LSR regA
             case 0x1D:  // ROR regA
             case 0x1E:  // ASR regA
             {
@@ -213,7 +213,7 @@ class BytecodeExecutor : public Executor {
             case 0x2E:  // SIN regA
                 setRegister(instruction[1], Serial.read());
                 break;
-            case 0x2F:  // RJMP byte1~3;
+            case 0x2F:  // RJMP byte1~3
             {
                 int32_t tmp = constFromBytes(&instruction[1], 3);
                 bitWrite(tmp, 31, bitRead(tmp, 23));
