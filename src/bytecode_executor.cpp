@@ -75,8 +75,8 @@ class BytecodeExecutor : public Executor {
     }
 
     bool execCommand() {
-        Serial.println(sourceFile.available());
-        Serial.println(sourceFile.position() - sourceFile.size());
+        // Serial.println(sourceFile.available());
+        // Serial.println(sourceFile.position() - sourceFile.size());
         // execution complete or sourceFile corrupted
         if (!sourceFile || !sourceFile.available()) return false;
         byte instruction[4];
@@ -503,7 +503,7 @@ class BytecodeExecutor : public Executor {
         uint32_t result = 0;
         while (byteCount > 0) {
             byteCount--;
-            result += (result << 8) + bytes[byteCount];
+            result = (result << 8) + bytes[byteCount];
         }
         return result;
     }
