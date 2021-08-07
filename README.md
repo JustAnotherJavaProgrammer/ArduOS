@@ -160,6 +160,7 @@ The `res` folder contains a list of [instructions](res/instruction_set.pdf) and 
 | 0x6B      | GET      | get a system variable, save to registers 0 and 1                                                                                                        | register A      | –                                    | –                                   | –                           |
 | 0x6C      | GETI     | get a system variable, save to registers 0 and 1                                                                                                        | sysvar ID       | –                                    | –                                   | –                           |
 | 0x6D      | RUN      | change the currently running program to the one with it's executable path described by the null-terminated string at memory address by reg A & B        | register A      | register B (most significant byte)   | –                                   | –                           |
+| 0x6E      | TFT      | save the current touch position to registers 0 and 1, the x position to r0 and the y position to r1                                                     | –               | –                                    | –                                   | bit copy store              |
 
 (All following rows of the table up to instruction ID 0xFF are empty.)
 

@@ -21,7 +21,6 @@
 
 #define INSTRUCTION_OFFSET 17
 #define MEM_MAX_ADDRESS 0x7FFFFFF  // 128 MiB
-#define pushToStack(a) setMemAddr(stack_pointer--, a)
 
 class BytecodeExecutor : public Executor {
     File sourceFile;
@@ -281,7 +280,7 @@ class BytecodeExecutor : public Executor {
                 break;
             case 0x4C:  // TCOL regA
             case 0x4E:  // TCOLI byte1~2
-                tft.setTextColor(instruction[1] == 0x4C ? getRegister(instruction[1]) : constFromBytes(&instruction[1], 2));
+                tft.setTextColor(instruction[0] == 0x4C ? getRegister(instruction[1]) : constFromBytes(&instruction[1], 2));
                 break;
             case 0x4D:  // TCOLB regA, regB
                 tft.setTextColor(getRegister(instruction[1]), getRegister(instruction[2]));
@@ -387,6 +386,14 @@ class BytecodeExecutor : public Executor {
             case 0x6C:  // GETI byte1
                 setRegisters(0, 1, getSysvar(instruction[0] == 0x6B ? getRegister(instruction[1]) : instruction[1]));
                 break;
+            case 0x6E:  // TFT
+            {
+                TSPoint pos = readTFT();
+                setRegister(0, pos.x);
+                setRegister(1, pos.y);
+                setFlag(FLAG_BIT_COPY_STORE, isPressed(pos));
+                if (getFlag(FLAG_BIT_COPY_STORE)) Serial.println(pos.x);
+            } break;
             default:  // noop
                 break;
         }
@@ -470,21 +477,48 @@ class BytecodeExecutor : public Executor {
         if (stack_pointer < MEM_MAX_ADDRESS / 2 + 1) {
             retVal = getMemAddr(stack_pointer);
             stack_pointer++;
+            // Serial.println(F("Meep!"));
         }
+        // Serial.print(F("popped: "));
+        // Serial.print(stack_pointer - 1);
+        // Serial.print(F("\t"));
+        // Serial.println(retVal, HEX);
         return retVal;
+    }
+
+    void pushToStack(const uint16_t value) {
+        stack_pointer--;
+        setMemAddr(stack_pointer, value);
     }
 
     uint16_t getMemAddr(const uint32_t addr) {
         memFile.seek(addr * 2);
+        // Serial.println(memFile.position(), HEX);
         uint16_t res = 0;
+        // uint16_t res = memFile.read();
+        // res = res | (memFile.read() << 8);
+        // Serial.print(F("Read "));
         memFile.readBytes((uint8_t*)(&res), 2);
+        // Serial.print(memFile.readBytes((uint8_t*)(&res), 2));
+        // Serial.print(F(" bytes from addr "));
+        // Serial.print(F("Read addr "));
+        // Serial.print(addr);
+        // Serial.print(F("\t"));
+        // Serial.println(res, HEX);
         return res;
     }
 
     void setMemAddr(const uint32_t addr, const uint16_t value) {
         memFile.seek(addr * 2);
+        // Serial.println(memFile.position(), HEX);
+        // Serial.println(memFile.available());
         memFile.write((char*)(&value), 2);
+        // memFile.flush();
         // Does not invoke flush(), will be cleared on next boot anyways
+        // Serial.print(F("Wrote addr "));
+        // Serial.print(addr);
+        // Serial.print(F("\t"));
+        // Serial.println(value, HEX);
     }
 
     void setFlag(byte flag, bool value) {
@@ -511,6 +545,10 @@ class BytecodeExecutor : public Executor {
     uint32_t constFromRegisters(const byte regA, const byte regB) { return (((uint32_t)getRegister(regB)) << 16) + ((uint32_t)getRegister(regA)); }
 
     uint16_t getRegister(byte regID) {
+        // Serial.print(F("get r"));
+        // Serial.print(regID);
+        // Serial.print(F("\t"));
+        // Serial.println(registers[regID]);
         if (regID < 32) return registers[regID];
         if (regID < 34) {
             if (regID == 32)
@@ -527,6 +565,10 @@ class BytecodeExecutor : public Executor {
     }
 
     void setRegister(const byte regID, const uint16_t value) {
+        // Serial.print(F("set r"));
+        // Serial.print(regID);
+        // Serial.print(F("\t"));
+        // Serial.println(value);
         if (regID < 32) {
             registers[regID] = value;
             return;
@@ -539,7 +581,7 @@ class BytecodeExecutor : public Executor {
         // if (SD.exists(filename)) {
         //     SD.remove(filename);
         // }
-        File memfile = SD.open(filename, FILE_WRITE);
+        File memfile = SD.open(filename, (O_READ | O_WRITE | O_CREAT));
         uint32_t bytesWritten = memfile.size();
         while (bytesWritten < MEM_MAX_ADDRESS + 1) {
             while (!memfile.availableForWrite()) Serial.println(F("memfile not available for write..."));
