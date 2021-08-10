@@ -13,5 +13,6 @@ extern SysvarStore sysvars;
 TSPoint readTFT();
 void drawFatalErrorMsg(const __FlashStringHelper *text);
 bool isPressed(TSPoint p);
+void swap(int16_t *a, int16_t *b);
 
 #endif

@@ -104,12 +104,12 @@ void setup() {
     }
     byte drawResult = drawBmp("ARDUOS.BMP", 20, 78);
     if (drawResult != SUCCESS) {
-      switch (drawResult) {
-        case FILE_NOT_FOUND:
-          drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
-        case BAD_FORMAT:
-          drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
-      }
+        switch (drawResult) {
+            case FILE_NOT_FOUND:
+                drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" not found"));
+            case BAD_FORMAT:
+                drawFatalErrorMsg(F("System file \"ARDUOS.BMP\" is corrupted"));
+        }
     }
     if (!main_executor.openProgram("SYS/BOOT.RUN")) {
         drawFatalErrorMsg(F("System file \"BOOT.RUN\" not found"));
@@ -132,7 +132,7 @@ void drawFatalErrorMsg(const __FlashStringHelper *text) {
 
 void loop() {
     // Program code
-    if(!main_executor.execCommand() && !main_executor.openProgram("SYS/HOME.RUN")) {
+    if (!main_executor.execCommand() && !main_executor.openProgram("SYS/HOME.RUN")) {
         drawFatalErrorMsg(F("System file \"HOME.RUN\" not found"));
     }
 }
@@ -148,11 +148,32 @@ TSPoint readTFT() {
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+        // Also handle screen rotation
+        int16_t width = tft.width();
+        int16_t height = tft.height();
+        const uint8_t rotation = tft.getRotation();
+        if (rotation % 2 == 1) swap(&width, &height);
         // scale from 0->1023 to tft.width
-        p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-        p.y = (tft.height() - map(p.y, TS_MINY, TS_MAXY, tft.height(), 0));
+        p.x = map(p.x, TS_MINX, TS_MAXX, width, 0);
+        p.y = (height - map(p.y, TS_MINY, TS_MAXY, height, 0));
+        if (rotation != 0) {
+            // if (rotation % 2 == 1) {
+            if (rotation != 2) {
+                swap(&p.x, &p.y);
+                swap(&width, &height);
+            }
+            if (rotation != 3) p.y = height - p.y;
+            if (rotation != 1) p.x = width - p.x;
+        }
     }
     return p;
 }
 
 bool isPressed(TSPoint p) { return p.x >= 0 && p.x < tft.width() && p.y >= 0 && p.y < tft.height(); }
+
+// This function swaps the values of two variables (created using GitHub Copilot)
+void swap(int16_t *a, int16_t *b) {
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
+}

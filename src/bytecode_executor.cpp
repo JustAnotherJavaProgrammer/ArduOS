@@ -52,6 +52,9 @@ class BytecodeExecutor : public Executor {
             sourceFile.seek(15);
             sourceVersion = (sourceFile.read() << 8) + sourceFile.read();
             Serial.begin(9600);
+            // Serial.print(tft.width());
+            // Serial.print(F("x"));
+            // Serial.println(tft.height());
 #ifdef CLEARMEMFILE_EVERY_PROGRAM
             if (memFile) memFile.close();
 #else
@@ -392,7 +395,7 @@ class BytecodeExecutor : public Executor {
                 setRegister(0, pos.x);
                 setRegister(1, pos.y);
                 setFlag(FLAG_BIT_COPY_STORE, isPressed(pos));
-                if (getFlag(FLAG_BIT_COPY_STORE)) Serial.println(pos.x);
+                // if (getFlag(FLAG_BIT_COPY_STORE)) Serial.println(pos.x);
             } break;
             default:  // noop
                 break;
